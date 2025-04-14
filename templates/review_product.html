@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Review Product Details</h2>
+    
+    <!-- Product Information -->
+    <div class="mb-4">
+        <h5 class="mb-3">Product Information</h5>
+        <p class="mb-2">Brand: {{ product_details.brand }}</p>
+        <p class="mb-2">Description: {{ product_details.description }}</p>
+        <p class="mb-2">TradePrice (exc VAT): £{{ product_details.trade_price_ex_vat }} (inc VAT): £{{ product_details.trade_price_inc_vat }}</p>
+        <p class="mb-2">Colours: {{ product_details.colors|join(', ') }}</p>
+        <p class="mb-2">Sizes: {{ product_details.sizes|join(', ') }}</p>
+        <p class="mb-2">Initial Number of Variants: {{ product_details.variant_count }} (must be less than 100)</p>
+    </div>
+
+    <!-- User Input Information -->
+    <div class="mb-4">
+        <h5 class="mb-3">Your Input</h5>
+        <p class="mb-2"><strong>Product Name:</strong> {{ product_details.product_name }}</p>
+        <p class="mb-2"><strong>Price:</strong> £{{ product_details.price }}</p>
+        <p class="mb-2">
+            <strong>Exclusions:</strong>
+            {% if product_details.exclude_ebay or product_details.exclude_amazon %}
+                <ul class="list-unstyled mb-0 mt-1">
+                    {% if product_details.exclude_ebay %}
+                        <li>• Excluded from eBay</li>
+                    {% endif %}
+                    {% if product_details.exclude_amazon %}
+                        <li>• Excluded from Amazon</li>
+                    {% endif %}
+                </ul>
+            {% else %}
+                No exclusions
+            {% endif %}
+        </p>
+        <p class="mb-2">
+            <strong>Stock in Store:</strong>
+            {% if product_details.stock_in_store %}
+                <span class="badge bg-success">Yes</span>
+            {% else %}
+                <span class="badge bg-secondary">No</span>
+            {% endif %}
+        </p>
+    </div>
+
+    <!-- Selected Variants -->
+    <div class="mb-4">
+        <h5 class="mb-3">Selected Variants</h5>
+        <div class="variants-grid">
+            {% set variants = variants_data|tojson|safe|from_json %}
+            {% for variant in variants %}
+            <div class="variant-item">
+                {% if variant.imageUrl %}
+                    <img src="{{ variant.imageUrl }}" alt="Product variant" class="variant-thumbnail">
+                {% endif %}
+                <div class="variant-info">
+                    <p><strong>SKU:</strong> {{ variant.sku }}</p>
+                    <p><strong>Color:</strong> {{ variant.color }}</p>
+                    <p><strong>Size:</strong> {{ variant.size }}</p>
+                    <p><strong>Stock:</strong> 
+                        <span class="badge {% if variant.stock > 0 %}bg-success{% else %}bg-danger{% endif %}">
+                            {{ variant.stock }}
+                        </span>
+                    </p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="mt-4 d-flex justify-content-between">
+        <div>
+            <button type="button" class="btn btn-secondary me-2" onclick="editVariants()">Edit Variants</button>
+            <button type="button" class="btn btn-secondary" onclick="editDetails()">Edit Details</button>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="confirmSubmit()">Submit Product</button>
+    </div>
+</div>
+
+<style>
+.variants-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+}
+.variant-item {
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    padding: 1rem;
+    background-color: #fff;
+}
+.variant-thumbnail {
+    width: 100%;
+    height: 150px;
+    object-fit: contain;
+    margin-bottom: 1rem;
+    background-color: #f8f9fa;
+}
+.variant-info p {
+    margin-bottom: 0.5rem;
+}
+.badge {
+    font-size: 0.875rem;
+    padding: 0.4em 0.8em;
+}
+.btn {
+    padding: 0.5rem 1.5rem;
+    font-weight: 500;
+}
+</style>
+
+<script>
+function editVariants() {
+    window.location.href = "{{ url_for('add_stock') }}";
+}
+
+function editDetails() {
+    window.location.href = "{{ url_for('product_details') }}";
+}
+
+function confirmSubmit() {
+    if (confirm('Are you sure you want to submit this product?')) {
+        // Clear the session data and submit
+        fetch("{{ url_for('clear_product_session') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }).then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = "{{ url_for('add_stock') }}";
+            }
+        });
+    }
+}
+</script>
+{% endblock %} 

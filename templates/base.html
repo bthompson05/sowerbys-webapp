@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sowerbys Shoes Stock System{% endblock %}</title>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+        }
+
+        .sidebar {
+            width: 200px;
+            background-color: #333;
+            color: white;
+            padding: 20px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .logo {
+            width: 160px;
+            margin: 20px 0 40px;
+        }
+
+        .nav-items {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: #fff;
+            padding: 15px;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+
+        .nav-item:hover {
+            background-color: #444;
+        }
+
+        .nav-item.active {
+            background-color: #4CAF50;
+        }
+
+        .nav-item i {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .nav-item span {
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+
+        .content-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .page-title {
+            font-size: 24px;
+            color: #333;
+        }
+
+        .distributor-select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        .product-search {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .product-search input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background-color: #45a049;
+        }
+
+        .note {
+            color: #666;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <nav class="sidebar">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="Sowerbys Shoes" class="logo">
+        <div class="nav-items">
+            <a href="{{ url_for('add_stock') }}" class="nav-item {% if request.endpoint == 'add_stock' %}active{% endif %}">
+                <i class="fas fa-plus-circle"></i>
+                <span>Add Stock</span>
+            </a>
+            <a href="{{ url_for('shopify_stock') }}" class="nav-item {% if request.endpoint == 'shopify_stock' %}active{% endif %}">
+                <i class="fab fa-shopify"></i>
+                <span>Shopify Stock</span>
+            </a>
+            <a href="{{ url_for('store_stock') }}" class="nav-item {% if request.endpoint == 'store_stock' %}active{% endif %}">
+                <i class="fas fa-store"></i>
+                <span>Store Stock</span>
+            </a>
+            <a href="{{ url_for('sale_book') }}" class="nav-item {% if request.endpoint == 'sale_book' %}active{% endif %}">
+                <i class="fas fa-book"></i>
+                <span>Sale Book</span>
+            </a>
+            <a href="{{ url_for('fulfill_orders') }}" class="nav-item {% if request.endpoint == 'fulfill_orders' %}active{% endif %}">
+                <i class="fas fa-check"></i>
+                <span>Fulfill Orders</span>
+            </a>
+            {% if session.get('is_admin') %}
+            <a href="{{ url_for('admin_dashboard') }}" class="nav-item {% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+                <i class="fas fa-cog"></i>
+                <span>Admin</span>
+            </a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="content-container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+</body>
+</html> 

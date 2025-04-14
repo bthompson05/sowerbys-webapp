@@ -1,0 +1,23 @@
+{
+    "benthompson2385@gmail.com": {
+        "password": "password123",
+        "name": "Ben Thompson",
+        "is_admin": true,
+        "role": "Administrator",
+        "status": "Active"
+    },
+    "clivesowerby3@gmail.com": {
+        "password": "clive",
+        "name": "Clive Sowerby",
+        "is_admin": false,
+        "role": "Staff",
+        "status": "Active"
+    },
+    "donnaperry214@gmail.com": {
+        "password": "donna",
+        "name": "Donna Perry",
+        "is_admin": false,
+        "role": "Staff",
+        "status": "Active"
+    }
+}

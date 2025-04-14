@@ -1,0 +1,415 @@
+
+[2025-04-12 13:35:37] CREATE_PRODUCT
+{
+  "title": "efefe",
+  "body_html": "<strong>Brand:</strong> GRAFTERS<br><strong>Description:</strong> Heritage Unisex Monkey Boot<br><strong>Trade Price (ex VAT):</strong> \u00a321.95<br><strong>Trade Price (inc VAT):</strong> \u00a326.34",
+  "vendor": "GRAFTERS",
+  "product_type": "Footwear",
+  "options": [
+    {
+      "name": "Size"
+    }
+  ],
+  "variants": [
+    {
+      "option1": "3",
+      "sku": "B430A-3",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 20
+    },
+    {
+      "option1": "4",
+      "sku": "B430A-4",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 20
+    },
+    {
+      "option1": "5",
+      "sku": "B430A-5",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 20
+    },
+    {
+      "option1": "6",
+      "sku": "B430A+-6",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 20
+    },
+    {
+      "option1": "7",
+      "sku": "B430A+-7",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 20
+    },
+    {
+      "option1": "8",
+      "sku": "B430A+-8",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 20
+    },
+    {
+      "option1": "9",
+      "sku": "B430A+-9",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 12
+    },
+    {
+      "option1": "10",
+      "sku": "B430A+-10",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 20
+    },
+    {
+      "option1": "11",
+      "sku": "B430A+-11",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 20
+    },
+    {
+      "option1": "12",
+      "sku": "B430A+-12",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 10
+    },
+    {
+      "option1": "3",
+      "sku": "B430BD-3",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 0
+    },
+    {
+      "option1": "4",
+      "sku": "B430BD-4",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 0
+    },
+    {
+      "option1": "5",
+      "sku": "B430BD-5",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 20
+    },
+    {
+      "option1": "6",
+      "sku": "B430BD-6",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 20
+    },
+    {
+      "option1": "7",
+      "sku": "B430BD-7",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 0
+    },
+    {
+      "option1": "8",
+      "sku": "B430BD-8",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 20
+    },
+    {
+      "option1": "9",
+      "sku": "B430BD-9",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 20
+    },
+    {
+      "option1": "10",
+      "sku": "B430BD-10",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 0
+    },
+    {
+      "option1": "11",
+      "sku": "B430BD-11",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 16
+    },
+    {
+      "option1": "12",
+      "sku": "B430BD-12",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 5
+    },
+    {
+      "option1": "3",
+      "sku": "B430CS-3",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 0
+    },
+    {
+      "option1": "4",
+      "sku": "B430CS-4",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 1
+    },
+    {
+      "option1": "5",
+      "sku": "B430CS-5",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 9
+    },
+    {
+      "option1": "6",
+      "sku": "B430CS-6",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 3
+    },
+    {
+      "option1": "7",
+      "sku": "B430CS-7",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 0
+    },
+    {
+      "option1": "8",
+      "sku": "B430CS-8",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 6
+    },
+    {
+      "option1": "9",
+      "sku": "B430CS-9",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 20
+    },
+    {
+      "option1": "10",
+      "sku": "B430CS-10",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 0
+    },
+    {
+      "option1": "11",
+      "sku": "B430CS-11",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 3
+    },
+    {
+      "option1": "12",
+      "sku": "B430CS-12",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 0
+    },
+    {
+      "option1": "3",
+      "sku": "B430GB-3",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 0
+    },
+    {
+      "option1": "4",
+      "sku": "B430GB-4",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 0
+    },
+    {
+      "option1": "5",
+      "sku": "B430GB-5",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 1
+    },
+    {
+      "option1": "6",
+      "sku": "B430GB-6",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 11
+    },
+    {
+      "option1": "7",
+      "sku": "B430GB-7",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 13
+    },
+    {
+      "option1": "8",
+      "sku": "B430GB-8",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 20
+    },
+    {
+      "option1": "9",
+      "sku": "B430GB-9",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 20
+    },
+    {
+      "option1": "10",
+      "sku": "B430GB-10",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 11
+    },
+    {
+      "option1": "11",
+      "sku": "B430GB-11",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 7
+    },
+    {
+      "option1": "12",
+      "sku": "B430GB-12",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 7
+    },
+    {
+      "option1": "6",
+      "sku": "B430M-6",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 0
+    },
+    {
+      "option1": "7",
+      "sku": "B430M-7",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 0
+    },
+    {
+      "option1": "8",
+      "sku": "B430M-8",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 0
+    },
+    {
+      "option1": "9",
+      "sku": "B430M-9",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 0
+    },
+    {
+      "option1": "10",
+      "sku": "B430M-10",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 0
+    },
+    {
+      "option1": "11",
+      "sku": "B430M-11",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 0
+    },
+    {
+      "option1": "12",
+      "sku": "B430M-12",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 0
+    },
+    {
+      "option1": "3",
+      "sku": "B430TS-3",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 0
+    },
+    {
+      "option1": "4",
+      "sku": "B430TS-4",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 6
+    },
+    {
+      "option1": "5",
+      "sku": "B430TS-5",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 14
+    },
+    {
+      "option1": "6",
+      "sku": "B430TS-6",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 15
+    },
+    {
+      "option1": "7",
+      "sku": "B430TS-7",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 5
+    },
+    {
+      "option1": "8",
+      "sku": "B430TS-8",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 1
+    },
+    {
+      "option1": "9",
+      "sku": "B430TS-9",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 10
+    },
+    {
+      "option1": "10",
+      "sku": "B430TS-10",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 0
+    },
+    {
+      "option1": "11",
+      "sku": "B430TS-11",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 4
+    },
+    {
+      "option1": "12",
+      "sku": "B430TS-12",
+      "price": "23",
+      "inventory_management": "shopify",
+      "inventory_quantity": 0
+    }
+  ]
+}
+--------------------------------------------------

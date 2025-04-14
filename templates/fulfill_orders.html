@@ -1,0 +1,724 @@
+{% extends "base.html" %}
+
+{% block title %}Fulfill Orders{% endblock %}
+
+{% block head %}
+<style>
+body {
+    background-color: #f8f9fa;
+    margin: 0;
+    padding: 20px;
+    min-height: 100vh;
+}
+
+.scan-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    padding: 30px;
+}
+
+.scan-container h1 {
+    font-size: 28px;
+    margin: 0 0 30px 0;
+    font-weight: 600;
+    color: #333;
+}
+
+.scan-input-container {
+    background: white;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.scan-label {
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 12px;
+    display: block;
+    font-weight: 500;
+}
+
+#barcodeInput {
+    width: 100%;
+    max-width: 300px;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 15px;
+    color: #333;
+}
+
+#barcodeInput:focus {
+    outline: none;
+    border-color: #4CAF50;
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
+}
+
+.product-details {
+    background: white;
+    border-radius: 8px;
+    margin-top: 30px;
+    padding: 30px;
+    border: 1px solid #eee;
+}
+
+.product-image {
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+    display: block;
+    margin-bottom: 25px;
+    border-radius: 4px;
+}
+
+.product-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    color: #333;
+}
+
+.product-info {
+    margin-bottom: 25px;
+}
+
+.product-info-row {
+    display: flex;
+    margin-bottom: 12px;
+    color: #666;
+}
+
+.info-label {
+    width: 120px;
+    font-weight: 500;
+    color: #333;
+}
+
+.info-value {
+    color: #666;
+}
+
+.button-group {
+    display: flex;
+    gap: 12px;
+    margin-top: 30px;
+}
+
+.btn-confirm, .btn-cancel {
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    min-width: 100px;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.btn-confirm {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+}
+
+.btn-cancel {
+    background-color: white;
+    color: #333;
+    border: 1px solid #ddd;
+}
+
+.btn-confirm:hover {
+    background-color: #45a049;
+}
+
+.btn-cancel:hover {
+    background-color: #f5f5f5;
+}
+
+/* Remove the scan button since we're showing input directly */
+.scan-button {
+    display: none;
+}
+
+/* Show scanning view by default */
+#scanningView {
+    display: block;
+}
+
+/* Hide the barcode display since we show it in the input */
+.barcode-display {
+    display: none;
+}
+
+.orders-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.orders-modal-content {
+    position: relative;
+    background: white;
+    margin: 50px auto;
+    padding: 30px;
+    width: 90%;
+    max-width: 800px;
+    border-radius: 8px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.orders-list {
+    margin-top: 20px;
+}
+
+.order-item {
+    padding: 15px;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.order-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.order-number {
+    font-weight: 600;
+    color: #333;
+}
+
+.order-date {
+    color: #666;
+}
+
+.order-details {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+}
+
+.close-modal {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 24px;
+    color: #666;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+.close-modal:hover {
+    color: #333;
+}
+
+.modal-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 20px 0;
+    padding-right: 40px;
+}
+
+.no-orders {
+    text-align: center;
+    padding: 30px;
+    color: #666;
+    font-size: 16px;
+}
+
+.page-view {
+    display: none;
+}
+
+.page-view.active {
+    display: block;
+}
+
+.orders-page {
+    background: white;
+    border-radius: 8px;
+    padding: 30px;
+    margin-top: 20px;
+}
+
+.orders-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.navigation-controls {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.nav-button {
+    background: white;
+    border: 1px solid #ddd;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.nav-button:hover {
+    background: #f5f5f5;
+}
+
+.nav-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.nav-button svg {
+    width: 16px;
+    height: 16px;
+}
+
+.order-item {
+    padding: 20px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    transition: all 0.2s ease;
+}
+
+.order-item:hover {
+    border-color: #4CAF50;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.order-number {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+}
+
+.order-date {
+    color: #666;
+    font-size: 14px;
+}
+
+.order-details {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 4px;
+    margin-top: 15px;
+}
+
+.order-quantity {
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.order-title {
+    color: #666;
+    font-size: 14px;
+}
+
+.no-orders {
+    text-align: center;
+    padding: 50px 20px;
+    color: #666;
+    font-size: 16px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="scan-container">
+    <!-- Scanning View -->
+    <div id="scanningView" class="page-view active">
+        <h1>Fulfill Orders</h1>
+        
+        <div class="scan-input-container">
+            <label class="scan-label" for="barcodeInput">Scan Barcode</label>
+            <input type="text" id="barcodeInput" value="" placeholder="Scan or enter barcode" autofocus>
+        </div>
+
+        <div id="productDetails" style="display: none;">
+            <img id="productImage" class="product-image" src="" alt="Product Image">
+            <h2 class="product-title" id="productTitle"></h2>
+            
+            <div class="product-info">
+                <div class="product-info-row">
+                    <span class="info-label">SKU:</span>
+                    <span class="info-value" id="productSKU"></span>
+                </div>
+                <div class="product-info-row">
+                    <span class="info-label">Size:</span>
+                    <span class="info-value" id="productSize"></span>
+                </div>
+                <div class="product-info-row">
+                    <span class="info-label">Price:</span>
+                    <span class="info-value" id="productPrice"></span>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button type="button" class="btn-cancel" id="cancelProduct">Incorrect</button>
+                <button type="button" class="btn-confirm" id="confirmProduct">Correct</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Orders View -->
+    <div id="ordersView" class="page-view">
+        <div class="orders-header">
+            <h1>Unfulfilled Orders</h1>
+            <div class="navigation-controls">
+                <button class="nav-button" id="backToScan">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 19l-7-7 7-7"/>
+                    </svg>
+                    Back to Scan
+                </button>
+            </div>
+        </div>
+        
+        <div id="ordersList" class="orders-page">
+            <!-- Orders will be populated here -->
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal" id="scanModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Scan Barcode</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Scan View -->
+                <div id="scanView">
+                    <div class="form-group">
+                        <label for="barcodeInput" class="visually-hidden">Barcode Input</label>
+                        <input type="text" class="form-control form-control-lg" id="barcodeInput" placeholder="Scan or enter barcode" autocomplete="off">
+                    </div>
+                </div>
+
+                <!-- Product View -->
+                <div id="productView" style="display: none;">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <img id="productImage" src="" alt="Product Image" class="img-fluid">
+                        </div>
+                        <div class="col-md-8">
+                            <h4 id="productTitle"></h4>
+                            <p id="productSKU" class="text-muted"></p>
+                            <div id="productDescription"></div>
+                        </div>
+                    </div>
+
+                    <!-- Unfulfilled Orders Section -->
+                    <div id="unfulfilledOrders" class="mt-4">
+                        <h5>Unfulfilled Orders</h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Order #</th>
+                                        <th>Date</th>
+                                        <th>Product</th>
+                                        <th>Quantity</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ordersList">
+                                    <!-- Orders will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="noOrders" class="alert alert-info" style="display: none;">
+                            No unfulfilled orders found for this product.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmBtn" style="display: none;">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const barcodeInput = document.getElementById('barcodeInput');
+    const productDetails = document.getElementById('productDetails');
+    const scanningView = document.getElementById('scanningView');
+    const ordersView = document.getElementById('ordersView');
+    const ordersList = document.getElementById('ordersList');
+    
+    let currentProductData = null;
+    let inputBuffer = '';
+    let lastKeypressTime = 0;
+    let lastProcessedBarcode = '';
+    let lastProcessedTime = 0;
+    const BARCODE_TIMEOUT = 50;
+    const DEBOUNCE_TIMEOUT = 1000;
+    const processedBarcodes = new Set();
+    
+    // Handle keyboard input (including barcode scanner)
+    document.addEventListener('keypress', function(e) {
+        const currentTime = new Date().getTime();
+        
+        if (currentTime - lastKeypressTime > BARCODE_TIMEOUT) {
+            inputBuffer = '';
+        }
+        
+        lastKeypressTime = currentTime;
+        
+        if (e.key !== 'Enter') {
+            inputBuffer += e.key;
+            return;
+        }
+        
+        if (inputBuffer) {
+            const barcode = inputBuffer.trim();
+            
+            if (barcode === lastProcessedBarcode && 
+                (currentTime - lastProcessedTime) < DEBOUNCE_TIMEOUT) {
+                console.log('Duplicate scan detected within debounce period - ignoring');
+                inputBuffer = '';
+                return;
+            }
+            
+            processBarcode(barcode);
+            lastProcessedBarcode = barcode;
+            lastProcessedTime = currentTime;
+            inputBuffer = '';
+        }
+    });
+    
+    // Handle manual input
+    barcodeInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const barcode = this.value.trim();
+            
+            const currentTime = new Date().getTime();
+            if (barcode === lastProcessedBarcode && 
+                (currentTime - lastProcessedTime) < DEBOUNCE_TIMEOUT) {
+                console.log('Duplicate scan detected within debounce period - ignoring');
+                this.value = '';
+                return;
+            }
+            
+            if (barcode) {
+                processBarcode(barcode);
+                lastProcessedBarcode = barcode;
+                lastProcessedTime = currentTime;
+                this.value = '';
+            }
+        }
+    });
+    
+    function processBarcode(barcode) {
+        console.log('Processing barcode:', barcode);
+        
+        // First, check for unfulfilled orders
+        fetch('/check-unfulfilled-orders', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ sku: barcode })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const ordersList = document.getElementById('ordersList');
+                const noOrders = document.getElementById('noOrders');
+                
+                if (data.orders && data.orders.length > 0) {
+                    ordersList.innerHTML = data.orders.map(order => `
+                        <tr>
+                            <td>${order.order_number}</td>
+                            <td>${new Date(order.created_at).toLocaleDateString()}</td>
+                            <td>${order.product_title}</td>
+                            <td>${order.quantity}</td>
+                        </tr>
+                    `).join('');
+                    ordersList.closest('.table-responsive').style.display = 'block';
+                    noOrders.style.display = 'none';
+                } else {
+                    ordersList.innerHTML = '';
+                    ordersList.closest('.table-responsive').style.display = 'none';
+                    noOrders.style.display = 'block';
+                }
+            } else {
+                console.error('Error checking unfulfilled orders:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+
+        // Then proceed with the existing product lookup
+        fetch('/get-product', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ barcode: barcode })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('scanView').style.display = 'none';
+                document.getElementById('productView').style.display = 'block';
+                document.getElementById('confirmBtn').style.display = 'block';
+                
+                document.getElementById('productTitle').textContent = data.product.title;
+                document.getElementById('productSKU').textContent = `SKU: ${data.product.sku}`;
+                document.getElementById('productDescription').innerHTML = data.product.description;
+                
+                if (data.product.image) {
+                    document.getElementById('productImage').src = data.product.image;
+                }
+            } else {
+                alert('Product not found');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error processing barcode');
+        });
+    }
+    
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    function showOrdersView() {
+        scanningView.classList.remove('active');
+        ordersView.classList.add('active');
+    }
+
+    function showScanningView() {
+        ordersView.classList.remove('active');
+        scanningView.classList.add('active');
+        barcodeInput.focus();
+    }
+
+    // Back button handler
+    document.getElementById('backToScan').addEventListener('click', function() {
+        showScanningView();
+    });
+
+    function checkUnfulfilledOrders(sku) {
+        fetch('/check-unfulfilled-orders', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ sku: sku })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const matchingOrders = data.orders.filter(order => 
+                    order.lineItems.edges.some(item => 
+                        item.node.sku === sku
+                    )
+                );
+
+                if (matchingOrders.length > 0) {
+                    ordersList.innerHTML = matchingOrders.map(order => `
+                        <div class="order-item">
+                            <div class="order-header">
+                                <span class="order-number">${order.name}</span>
+                                <span class="order-date">${formatDate(order.createdAt)}</span>
+                            </div>
+                            <div class="order-details">
+                                ${order.lineItems.edges
+                                    .filter(item => item.node.sku === sku)
+                                    .map(item => `
+                                        <div class="order-quantity">Quantity: ${item.node.quantity}</div>
+                                        <div class="order-title">${item.node.title}</div>
+                                    `).join('')}
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    ordersList.innerHTML = '<div class="no-orders">No matching unfulfilled orders found</div>';
+                }
+                showOrdersView();
+            } else {
+                console.error('Error fetching orders:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error checking unfulfilled orders');
+        });
+    }
+
+    // Update the confirm button handler
+    document.getElementById('confirmProduct').addEventListener('click', function() {
+        console.log('Confirm clicked');
+        if (currentProductData) {
+            checkUnfulfilledOrders(currentProductData.styleNo);
+            productDetails.style.display = 'none';
+        }
+    });
+
+    // Handle cancel button
+    document.getElementById('cancelProduct').addEventListener('click', function() {
+        console.log('Cancel clicked');
+        productDetails.style.display = 'none';
+        barcodeInput.value = '';
+        barcodeInput.focus();
+    });
+
+    // Reset modal when it's hidden
+    document.getElementById('scanModal').addEventListener('hidden.bs.modal', function () {
+        document.getElementById('scanView').style.display = 'block';
+        document.getElementById('productView').style.display = 'none';
+        document.getElementById('confirmBtn').style.display = 'none';
+        document.getElementById('barcodeInput').value = '';
+        document.getElementById('ordersList').innerHTML = '';
+        document.getElementById('noOrders').style.display = 'none';
+    });
+});
+</script>
+{% endblock %} 
