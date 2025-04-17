@@ -15,9 +15,6 @@ import csv
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'  # Change this to a secure secret key in production
 
-# File to store user data
-USERS_FILE = 'users.json'
-
 # Create directory for cached images if it doesn't exist
 CACHE_DIR = os.path.join('static', 'cache', 'products')
 os.makedirs(CACHE_DIR, exist_ok=True)
@@ -28,6 +25,9 @@ CACHE_EXPIRATION = 3600
 # Add logging directory for Shopify API commands
 LOGS_DIR = os.path.join('logs')
 os.makedirs(LOGS_DIR, exist_ok=True)
+
+# File to store user data
+USERS_FILE = os.path.join('users.json')
 
 def is_cache_valid(cached_path):
     """Check if the cached file is still valid (less than 1 hour old)."""
