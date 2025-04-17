@@ -3,6 +3,414 @@
 {% block title %}Add Stock - Sowerbys Shoes{% endblock %}
 
 {% block content %}
+<style>
+.content-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.distributor-select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.product-search {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    align-items: center;
+}
+
+.product-search label {
+    font-weight: 500;
+    min-width: 120px;
+}
+
+.product-search input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    background-color: #4CAF50;
+    color: white;
+    transition: background-color 0.2s;
+}
+
+.btn:hover {
+    background-color: #45a049;
+}
+
+.btn:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+.note {
+    color: #666;
+    font-style: italic;
+    margin-bottom: 20px;
+}
+
+/* Variant Cards Styling */
+.variant-card {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.color-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.color-header h4 {
+    margin: 0;
+    font-size: 18px;
+    color: #333;
+}
+
+.image-container {
+    position: relative;
+    margin: 15px 0;
+    text-align: center;
+    background: #f8f9fa;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.gallery-wrapper {
+    position: relative;
+    width: 100%;
+    padding-top: 100%; /* Create a square aspect ratio */
+    overflow: hidden;
+}
+
+.gallery-images {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    transition: transform 0.3s ease;
+}
+
+.gallery-image {
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: white;
+}
+
+.gallery-nav {
+    position: absolute;
+    bottom: 15px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    z-index: 3;
+}
+
+.gallery-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    border: 2px solid rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.gallery-dot.active {
+    background: white;
+    border-color: #4CAF50;
+    transform: scale(1.2);
+}
+
+.gallery-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    z-index: 3;
+    transition: all 0.2s;
+}
+
+.gallery-arrow:hover {
+    background: white;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.gallery-arrow.prev {
+    left: 10px;
+}
+
+.gallery-arrow.next {
+    right: 10px;
+}
+
+.gallery-arrow svg {
+    width: 24px;
+    height: 24px;
+    fill: #333;
+}
+
+.no-image-placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+    color: #666;
+    font-style: italic;
+}
+
+/* Update size list styling */
+.sizes-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+    margin-top: 15px;
+}
+
+.size-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #eee;
+}
+
+.size-item label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.size-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.stock-count {
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-left: auto;
+    font-size: 14px;
+}
+
+.stock-good {
+    color: #2e7d32;
+    background: #e8f5e9;
+}
+
+.stock-warning {
+    color: #ef6c00;
+    background: #fff3e0;
+}
+
+.stock-empty {
+    color: #c62828;
+    background: #ffebee;
+}
+
+/* Product Details Form Styling */
+.product-details-form {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 16px;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.form-control {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.price-field {
+    display: flex;
+    align-items: center;
+}
+
+.currency {
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+input[type="number"] {
+    width: 100%;
+}
+
+.form-check {
+    margin-bottom: 15px;
+}
+
+.form-check-input {
+    margin-right: 8px;
+}
+
+.form-check-label {
+    color: #333;
+    cursor: pointer;
+}
+
+/* Button Styling */
+.btn-add-selected, .btn-add-all {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.2s;
+}
+
+.btn-add-selected {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.btn-add-all {
+    background-color: #2196F3;
+    color: white;
+}
+
+.btn-add-selected:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+.btn-add-selected:not(:disabled):hover,
+.btn-add-all:hover {
+    opacity: 0.9;
+}
+
+.variants-actions {
+    position: sticky;
+    bottom: 20px;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    z-index: 100;
+}
+
+/* Responsive Grid Adjustments */
+@media (max-width: 768px) {
+    .product-search {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .product-search label {
+        margin-bottom: 8px;
+    }
+    
+    .variants-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .btn-add-selected,
+    .btn-add-all {
+        width: 100%;
+    }
+}
+
+.ukd-info {
+    margin-bottom: 20px;
+    font-size: 16px;
+    line-height: 1.8;
+}
+
+.ukd-info p {
+    margin: 8px 0;
+    color: #333;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.ukd-info span {
+    font-weight: 500;
+}
+
+.form-actions {
+    margin-top: 20px;
+    text-align: right;
+}
+
+.btn-primary {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    background-color: #45a049;
+}
+</style>
+
 <div class="page-header">
     <h1 class="page-title">Add Stock</h1>
 </div>
@@ -32,1127 +440,544 @@
             <button id="addSelectedToInventory" class="btn btn-add-selected" disabled>
                 Add Selected Items
             </button>
-            <button id="addAllToInventory" class="btn btn-add-all">
-                Add All Items
-            </button>
         </div>
     </div>
 
     <!-- Product Details Section -->
-    <div id="productDetails" style="display: none; margin-top: 30px;">
-        <h3 style="margin-bottom: 15px; font-size: 1.2em; font-weight: bold;">Product Details</h3>
-        
-        <!-- UKD Product Information -->
-        <div class="info-card">
-            <div class="info-header">Product Information</div>
-            <div class="info-content">
-                <p>Brand: <span id="ukdBrand"></span></p>
-                <p>Name: <span id="ukdName"></span></p>
-                <p>Description: <span id="ukdDescription"></span></p>
-                <p>Trade Price: £<span id="ukdTradePrice"></span> (inc VAT: £<span id="ukdTradePriceVat"></span>)</p>
-            </div>
+    <div id="productDetails" style="display: none; margin-top: 20px;">
+        <div class="ukd-info mb-4">
+            <p>Name: <span id="ukdName"></span> | Brand: <span id="ukdBrand"></span></p>
+            <p>Description: <span id="ukdDescription"></span></p>
+            <p>Trade Price: £<span id="ukdTradePrice"></span> (ex VAT) | £<span id="ukdTradePriceInc"></span> (inc VAT)</p>
         </div>
 
-        <form id="productDetailsForm" class="details-form">
-            <div class="form-row">
-                <label for="product_name">Enter Name for Product Listing:</label>
-                <input type="text" id="product_name" name="product_name" class="form-input" required>
+        <form id="productDetailsForm" class="product-details-form">
+            <div class="form-group">
+                <label for="product_name">Product Name:</label>
+                <input type="text" id="product_name" name="product_name" class="form-control" required>
             </div>
-
-            <div class="form-row">
+            <div class="form-group">
                 <label for="price">Price:</label>
-                <div class="price-input">
-                    <span class="currency">£</span>
-                    <input type="number" id="price" name="price" step="0.01" class="form-input" required>
+                <div class="input-group">
+                    <span class="input-group-text">£</span>
+                    <input type="number" id="price" name="price" class="form-control" step="0.01" required>
                 </div>
             </div>
-
-            <div class="form-actions">
-                <button type="button" class="btn btn-secondary" onclick="backToVariants()">Back to Variants</button>
-                <button type="submit" class="btn btn-add-selected">Add Product</button>
-            </div>
+            <input type="hidden" name="variants_data" id="variants_data">
+            <button type="submit" class="btn btn-primary">Save</button>
         </form>
     </div>
-
-    <div class="product-info" style="display: none;">
-        <div class="row">
-            <div class="col-md-4">
-                <div class="product-image-container">
-                    <img id="product-image" src="" alt="Product Image" class="img-fluid" style="max-height: 200px; width: auto;">
-                </div>
-            </div>
-            <div class="col-md-8">
-                <div class="product-details">
-                    <h4 id="product-title" class="mb-2"></h4>
-                    <p class="mb-1"><strong>Style No:</strong> <span id="product-styleNo"></span></p>
-                    <p class="mb-1"><strong>Price:</strong> <span id="product-price"></span></p>
-                    <p class="mb-1"><strong>Size:</strong> <span id="product-size"></span></p>
-                    <p class="mb-1"><strong>Brand:</strong> <span id="product-brand"></span></p>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
-
-<div class="container mt-4">
-    <h1>Fulfill Orders</h1>
-    <div class="card">
-        <div class="card-body">
-            <h2>Barcode Scanner</h2>
-            <div class="form-group">
-                <label for="barcodeInput">Scan Barcode:</label>
-                <input type="text" class="form-control" id="barcodeInput" placeholder="Scan or type barcode here">
-            </div>
-            
-            <div class="mt-4">
-                <div class="alert alert-success" id="productFound" style="display: none;">
-                    <h4>Product Found:</h4>
-                    <p><strong>Style No:</strong> <span id="foundStyleNo"></span></p>
-                    <p><strong>Size:</strong> <span id="foundSize"></span></p>
-                    <p><strong>Brand:</strong> <span id="foundBrand"></span></p>
-                </div>
-            </div>
-
-            <div class="mt-4">
-                <h3>Scan History</h3>
-                <div id="scanHistory" class="list-group">
-                    <!-- Scan history will be added here -->
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Barcode Scan Result Modal -->
-<div class="modal fade" id="scanResultModal" tabindex="-1" aria-labelledby="scanResultModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="scanResultModalLabel">Is this the correct product?</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="text-center mb-3">
-                    <img id="modal-product-image" src="" alt="Product Image" class="img-fluid" style="max-height: 200px; width: auto;">
-                </div>
-                <div class="text-center">
-                    <h4 id="modal-product-title" class="mb-2"></h4>
-                    <p class="mb-1"><strong>Style No:</strong> <span id="modal-product-styleNo"></span></p>
-                    <p class="mb-1"><strong>Price:</strong> <span id="modal-product-price"></span></p>
-                    <p class="mb-1"><strong>Size:</strong> <span id="modal-product-size"></span></p>
-                    <p class="mb-1"><strong>Brand:</strong> <span id="modal-product-brand"></span></p>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No, try again</button>
-                <button type="button" class="btn btn-primary" id="confirmProduct">Yes, this is correct</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<style>
-.variant-card {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 15px;
-    background: white;
-}
-
-.variant-image-container {
-    position: relative;
-    width: 100%;
-    margin: 10px 0;
-    text-align: center;
-}
-
-.variant-image {
-    width: 100%;
-    height: 200px;
-    object-fit: contain;
-    background-color: #f8f8f8;
-    border-radius: 4px;
-}
-
-.image-nav {
-    display: flex;
-    justify-content: center;
-    gap: 5px;
-    margin-top: 5px;
-}
-
-.image-nav-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background-color: #ccc;
-    cursor: pointer;
-}
-
-.image-nav-dot.active {
-    background-color: #4CAF50;
-}
-
-.no-image-placeholder {
-    width: 100%;
-    height: 200px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #f8f8f8;
-    color: #666;
-    font-style: italic;
-    border-radius: 4px;
-}
-
-.variant-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #eee;
-}
-
-.variant-details {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    margin-bottom: 15px;
-}
-
-.variant-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    padding-top: 10px;
-    border-top: 1px solid #eee;
-}
-
-.stock-level {
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.9em;
-}
-
-.in-stock {
-    background-color: #e6ffe6;
-    color: #006600;
-}
-
-.out-of-stock {
-    background-color: #ffe6e6;
-    color: #cc0000;
-}
-
-.size-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 4px;
-}
-
-.size-item:hover {
-    background-color: #f5f5f5;
-    border-radius: 4px;
-}
-
-.checkbox-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.checkbox-wrapper input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-}
-
-.checkbox-wrapper label {
-    cursor: pointer;
-}
-
-.select-all-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.debug-urls {
-    margin-top: 10px;
-    font-size: 12px;
-    color: #666;
-    text-align: left;
-    padding: 10px;
-    background-color: #f8f8f8;
-    border-radius: 4px;
-    word-break: break-all;
-}
-
-.btn-add-selected, .btn-add-all {
-    padding: 6px 12px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9em;
-    transition: background-color 0.2s;
-}
-
-.btn-add-selected {
-    background-color: #4CAF50;
-    color: white;
-}
-
-.btn-add-selected:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
-}
-
-.btn-add-all {
-    background-color: #2196F3;
-    color: white;
-}
-
-.btn-add-selected:not(:disabled):hover, .btn-add-all:hover {
-    opacity: 0.9;
-}
-
-.info-card {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    background: white;
-}
-
-.info-header {
-    padding: 12px 15px;
-    border-bottom: 1px solid #ddd;
-    font-weight: bold;
-    background-color: #f8f8f8;
-    border-radius: 8px 8px 0 0;
-}
-
-.info-content {
-    padding: 15px;
-}
-
-.info-content p {
-    margin: 8px 0;
-    color: #333;
-}
-
-.details-form {
-    background: white;
-    padding: 20px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-}
-
-.form-row {
-    margin-bottom: 20px;
-}
-
-.form-row label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-    color: #333;
-}
-
-.form-input {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-}
-
-.form-input:focus {
-    border-color: #4CAF50;
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
-}
-
-.price-input {
-    display: flex;
-    align-items: center;
-}
-
-.currency {
-    padding: 8px 12px;
-    background: #f8f8f8;
-    border: 1px solid #ddd;
-    border-right: none;
-    border-radius: 4px 0 0 4px;
-    color: #333;
-}
-
-.price-input .form-input {
-    border-radius: 0 4px 4px 0;
-}
-
-.checkbox-group {
-    display: flex;
-    gap: 20px;
-}
-
-.form-actions {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 30px;
-    padding-top: 20px;
-    border-top: 1px solid #ddd;
-}
-
-.btn-secondary {
-    background-color: #6c757d;
-    color: white;
-}
-
-.btn-secondary:hover {
-    background-color: #5c636a;
-}
-
-.product-info {
-    margin: 20px 0;
-    padding: 15px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    background-color: #f9f9f9;
-}
-
-.product-image-container {
-    text-align: center;
-    padding: 10px;
-}
-
-.product-details {
-    padding: 10px;
-}
-
-.product-details h4 {
-    color: #333;
-    margin-bottom: 15px;
-}
-
-.product-details p {
-    margin-bottom: 8px;
-    color: #666;
-}
-
-.product-details strong {
-    color: #333;
-    min-width: 80px;
-    display: inline-block;
-}
-
-.list-group-item {
-    transition: background-color 0.2s;
-}
-
-.list-group-item:hover {
-    background-color: #f8f9fa;
-}
-
-.alert-success {
-    background-color: #d4edda;
-    border-color: #c3e6cb;
-    color: #155724;
-}
-</style>
 
 <script>
-function createImageGallery(container, images) {
-    if (!images || images.length === 0) {
-        container.innerHTML = '<div class="no-image-placeholder">No image available</div>';
-        return;
-    }
-
-    let currentIndex = 0;
-    
-    // Create image element
-    const img = document.createElement('img');
-    img.className = 'variant-image';
-    img.src = images[0];
-    img.alt = 'Product variant';
-    
-    // Create navigation dots if there are multiple images
-    const nav = document.createElement('div');
-    nav.className = 'image-nav';
-    
-    if (images.length > 1) {
-        images.forEach((_, index) => {
-            const dot = document.createElement('div');
-            dot.className = `image-nav-dot ${index === 0 ? 'active' : ''}`;
-            dot.onclick = () => {
-                currentIndex = index;
-                updateImage();
-            };
-            nav.appendChild(dot);
-        });
-    }
-    
-    // Update function
-    function updateImage() {
-        img.src = images[currentIndex];
-        nav.querySelectorAll('.image-nav-dot').forEach((dot, index) => {
-            dot.className = `image-nav-dot ${index === currentIndex ? 'active' : ''}`;
-        });
-    }
-    
-    // Add error handling
-    img.onerror = () => {
-        container.innerHTML = '<div class="no-image-placeholder">Image not available</div>';
-    };
-    
-    // Clear container and add elements
-    container.innerHTML = '';
-    container.appendChild(img);
-    if (images.length > 1) {
-        container.appendChild(nav);
-    }
-}
-
-function updateAddSelectedButtons() {
-    // Update all "Add Selected" buttons in each card
-    document.querySelectorAll('.variant-card').forEach(card => {
-        const hasChecked = card.querySelectorAll('.size-checkbox:checked').length > 0;
-        const addSelectedBtn = card.querySelector('.btn-add-selected');
-        if (addSelectedBtn) {
-            addSelectedBtn.disabled = !hasChecked;
-        }
-    });
-    
-    // Update main "Add Selected Items" button
-    const anyChecked = document.querySelectorAll('.size-checkbox:checked').length > 0;
-    document.getElementById('addSelectedToInventory').disabled = !anyChecked;
-}
-
-function toggleColorVariant(checkbox, colorCode) {
-    const card = checkbox.closest('.variant-card');
-    const sizeCheckboxes = card.querySelectorAll('.size-checkbox');
-    sizeCheckboxes.forEach(cb => {
-        cb.checked = checkbox.checked;
-    });
-    updateAddSelectedButtons();
-}
-
-document.getElementById('searchProduct').addEventListener('click', function() {
-    const distributor = document.querySelector('.distributor-select').value;
-    const productCode = document.getElementById('productCode').value;
-    const variantsContainer = document.getElementById('productVariants');
+document.addEventListener('DOMContentLoaded', function() {
+    const distributorSelect = document.querySelector('.distributor-select');
+    const productCode = document.getElementById('productCode');
+    const searchButton = document.getElementById('searchProduct');
+    const productVariants = document.getElementById('productVariants');
     const variantsGrid = document.getElementById('variantsGrid');
     const variantsTitle = document.getElementById('variantsTitle');
+    const addSelectedBtn = document.getElementById('addSelectedToInventory');
+    const productDetailsForm = document.getElementById('productDetailsForm');
+    const variantsDataInput = document.getElementById('variants_data');
     
-    // Clear previous results
-    variantsGrid.innerHTML = '';
-    variantsContainer.style.display = 'none';
+    let currentVariants = {};
     
-    if (!distributor) {
-        alert('Please select a distributor');
-        return;
-    }
-    
-    if (!productCode) {
-        alert('Please enter a product code');
-        return;
-    }
-    
-    // Show loading state
-    variantsTitle.textContent = 'Searching for variants...';
-    variantsContainer.style.display = 'block';
-    
-    fetch('/search-product', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            distributor: distributor,
-            productCode: productCode
-        })
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success && data.variants) {
-            // Update title
-            variantsTitle.textContent = `Found ${data.totalVariants} variants for ${productCode}`;
-            
-            // Display product info if available
-            if (data.productInfo) {
-                displayProductInfo(data.productInfo);
-            }
-            
-            // Create cards for each variant color
-            Object.entries(data.variants).forEach(([colorCode, variantData]) => {
-                const colorCard = document.createElement('div');
-                colorCard.className = 'variant-card';
-                
-                // Safely get product information
-                const productInfo = data.productInfo || {};
-                
-                // Add product information as data attributes
-                colorCard.dataset.brand = productInfo.brand || '';
-                colorCard.dataset.description = productInfo.description || '';
-                colorCard.dataset.tradePriceEx = productInfo.tradePriceEx || '';
-                colorCard.dataset.tradePriceInc = productInfo.tradePriceInc || '';
-                colorCard.dataset.color = colorCode;
-                
-                // Safely get variant data
-                if (variantData.sizes && variantData.sizes.length > 0) {
-                    colorCard.dataset.sku = variantData.sizes[0].sku || '';
-                    colorCard.dataset.stock = variantData.sizes[0].stock || '0';
-                }
-                
-                const variantContent = `
-                    <div class="variant-header">
-                        <div class="select-all-wrapper">
-                            <input type="checkbox" 
-                                   id="selectAll_${colorCode}" 
-                                   onchange="toggleColorVariant(this, '${colorCode}')"
-                                   class="color-checkbox">
-                            <label for="selectAll_${colorCode}">
-                                <h4>${colorCode}</h4>
-                            </label>
-                        </div>
-                        <span>${variantData.sizes ? variantData.sizes.length : 0} sizes</span>
-                    </div>
-                    <div class="variant-image-container"></div>
-                    <div class="variant-details">
-                        ${(variantData.sizes || []).map(variant => `
-                            <div class="size-item">
-                                <div class="checkbox-wrapper">
-                                    <input type="checkbox" 
-                                           id="size_${variant.sku}" 
-                                           class="size-checkbox"
-                                           data-sku="${variant.sku || ''}"
-                                           data-size="${variant.size || ''}"
-                                           data-color="${colorCode}"
-                                           onchange="updateAddSelectedButton()">
-                                    <label for="size_${variant.sku}">
-                                        <strong>Size ${variant.size || 'N/A'}:</strong>
-                                    </label>
-                                </div>
-                                <span class="stock-level ${parseInt(variant.stock || 0) > 0 ? 'in-stock' : 'out-of-stock'}">
-                                    ${variant.stock || 0} in stock
-                                </span>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-                
-                colorCard.innerHTML = variantContent;
-                
-                // Initialize image gallery after card is created
-                const imageContainer = colorCard.querySelector('.variant-image-container');
-                createImageGallery(imageContainer, variantData.image_url);
-                
-                variantsGrid.appendChild(colorCard);
-            });
-            
-            // Show the variants section
-            variantsContainer.style.display = 'block';
-            // Reset add selected button state
-            updateAddSelectedButtons();
-        } else {
-            variantsTitle.textContent = data.message || 'No variants found';
-            variantsGrid.innerHTML = '<div class="alert alert-info">No product variants found matching your search criteria.</div>';
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        variantsTitle.textContent = 'Error occurred';
-        variantsGrid.innerHTML = `
-            <div class="alert alert-danger">
-                An error occurred while searching for the product. Please try again or contact support if the problem persists.
-                <br>
-                <small class="text-muted">${error.message}</small>
-            </div>
-        `;
-    });
-});
-
-function addSelectedFromCard(button, colorCode) {
-    const card = button.closest('.variant-card');
-    const selectedSkus = Array.from(card.querySelectorAll('.size-checkbox:checked'))
-        .map(checkbox => checkbox.dataset.sku);
-    
-    if (selectedSkus.length === 0) {
-        alert('Please select at least one size to add to inventory');
-        return;
-    }
-    
-    addToInventory(selectedSkus);
-}
-
-function addAllFromCard(button, colorCode) {
-    const card = button.closest('.variant-card');
-    const allSkus = Array.from(card.querySelectorAll('.size-checkbox'))
-        .map(checkbox => checkbox.dataset.sku);
-    
-    addToInventory(allSkus);
-}
-
-function addToInventory(skus) {
-    const distributor = document.querySelector('.distributor-select').value;
-    
-    fetch('/add-to-inventory', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            distributor: distributor,
-            skus: skus
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Products added to inventory successfully!');
-            // Uncheck all checkboxes after successful addition
-            document.querySelectorAll('.size-checkbox, .color-checkbox').forEach(cb => {
-                cb.checked = false;
-            });
-            updateAddSelectedButtons();
-        } else {
-            alert('Error: ' + data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred while adding the products to inventory');
-    });
-}
-
-// Replace existing updateAddSelectedButton function
-function updateAddSelectedButton() {
-    updateAddSelectedButtons();  // Use the new function that updates all buttons
-}
-
-function showProductDetails(variants) {
-    document.getElementById('productVariants').style.display = 'none';
-    document.getElementById('productDetails').style.display = 'block';
-    
-    // Get the first variant to access product information
-    const firstVariant = variants[0];
-    console.log('First variant:', firstVariant);
-    const sku = firstVariant.sku;
-    console.log('Looking up SKU:', sku);
-    
-    // Fetch product information based on SKU
-    fetch('/get-product-info', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ sku: sku })
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log('Full API response:', data);
-        if (data.success && data.productInfo) {
-            console.log('Product info received:', data.productInfo);
-            
-            // Update product information from the API response
-            const brand = data.productInfo.brand || '';
-            const name = data.productInfo.name || '';
-            const description = data.productInfo.description || '';
-            const tradePrice = data.productInfo.tradePriceEx || '0.00';
-            const tradePriceVat = data.productInfo.tradePriceInc || '0.00';
-            
-            console.log('Trade price value:', tradePrice);
-            console.log('VAT-inclusive price value:', tradePriceVat);
-            
-            document.getElementById('ukdBrand').textContent = brand;
-            document.getElementById('ukdName').textContent = name;
-            document.getElementById('ukdDescription').textContent = description;
-            document.getElementById('ukdTradePrice').textContent = tradePrice;
-            document.getElementById('ukdTradePriceVat').textContent = tradePriceVat;
-            
-            // Store variants data
-            document.getElementById('productDetailsForm').dataset.variants = JSON.stringify(variants);
-        } else {
-            console.error('Error fetching product info:', data.message);
-            alert('Error fetching product information. Please try again.');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred while fetching product information');
-    });
-}
-
-function backToVariants() {
-    document.getElementById('productDetails').style.display = 'none';
-    document.getElementById('productVariants').style.display = 'block';
-}
-
-document.getElementById('productDetailsForm').addEventListener('submit', function(event) {
-    event.preventDefault();
-    
-    // Get all selected variants from the variants grid
-    const selectedVariants = {};
-    document.querySelectorAll('.variant-card').forEach(card => {
-        const colorCode = card.querySelector('h4').textContent.trim();
-        const checkedSizes = Array.from(card.querySelectorAll('.size-checkbox:checked'));
+    searchButton.addEventListener('click', function() {
+        const distributor = distributorSelect.value;
+        const code = productCode.value.trim();
         
-        if (checkedSizes.length > 0) {
-            selectedVariants[colorCode] = {
-                sizes: checkedSizes.map(checkbox => ({
-                    sku: checkbox.dataset.sku,
-                    size: checkbox.dataset.size,
-                    stock: parseInt(checkbox.closest('.size-item').querySelector('.stock-level').textContent) || 0
-                }))
-            };
+        if (!distributor) {
+            alert('Please select a distributor');
+            return;
         }
-    });
-    
-    const formData = {
-        product_name: document.getElementById('product_name').value,
-        price: document.getElementById('price').value,
-        variants: selectedVariants,
-        productInfo: {
-            brand: document.getElementById('ukdBrand').textContent,
-            name: document.getElementById('ukdName').textContent,
-            description: document.getElementById('ukdDescription').textContent,
-            tradePriceEx: document.getElementById('ukdTradePrice').textContent,
-            tradePriceInc: document.getElementById('ukdTradePriceVat').textContent
-        }
-    };
-    
-    console.log('Submitting form data:', formData);  // Debug log
-    
-    if (!formData.product_name || !formData.price) {
-        alert('Please fill in all required fields');
-        return;
-    }
-    
-    if (Object.keys(formData.variants).length === 0) {
-        alert('Please select at least one variant');
-        return;
-    }
-    
-    // Post to Shopify
-    fetch('/post-to-shopify', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log('Shopify response:', data);  // Debug log
-        if (data.success) {
-            alert('Product successfully created in Shopify!');
-            window.location.reload();
-        } else {
-            alert('Error creating product in Shopify: ' + (data.message || 'Unknown error'));
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error creating product in Shopify');
-    });
-});
-
-// Update the addSelectedToInventory click handler
-document.getElementById('addSelectedToInventory').addEventListener('click', function() {
-    // Get all selected variants from the variants grid
-    const selectedVariants = {};
-    document.querySelectorAll('.variant-card').forEach(card => {
-        const colorCode = card.querySelector('h4').textContent.trim();
-        const checkedSizes = Array.from(card.querySelectorAll('.size-checkbox:checked'));
         
-        if (checkedSizes.length > 0) {
-            selectedVariants[colorCode] = {
-                sizes: checkedSizes.map(checkbox => ({
-                    sku: checkbox.dataset.sku,
-                    size: checkbox.dataset.size,
-                    stock: parseInt(checkbox.closest('.size-item').querySelector('.stock-level').textContent) || 0
-                }))
-            };
+        if (!code) {
+            alert('Please enter a product code');
+            return;
         }
-    });
-
-    if (Object.keys(selectedVariants).length === 0) {
-        alert('Please select at least one variant');
-        return;
-    }
-
-    // Show product details section
-    document.getElementById('productVariants').style.display = 'none';
-    document.getElementById('productDetails').style.display = 'block';
-
-    // Get product info from the first variant card that has checked items
-    const firstCard = document.querySelector('.variant-card input[type="checkbox"]:checked').closest('.variant-card');
-    const sku = firstCard.querySelector('.size-checkbox:checked').dataset.sku;
-
-    // Fetch product information based on SKU
-    fetch('/get-product-info', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ sku: sku })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success && data.productInfo) {
-            document.getElementById('ukdBrand').textContent = data.productInfo.brand || '';
-            document.getElementById('ukdName').textContent = data.productInfo.name || '';
-            document.getElementById('ukdDescription').textContent = data.productInfo.description || '';
-            document.getElementById('ukdTradePrice').textContent = data.productInfo.tradePriceEx || '0.00';
-            document.getElementById('ukdTradePriceVat').textContent = data.productInfo.tradePriceInc || '0.00';
-        } else {
-            console.error('Error fetching product info:', data.message);
-            alert('Error fetching product information. Please try again.');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred while fetching product information');
-    });
-});
-
-// Update the addAllToInventory click handler
-document.getElementById('addAllToInventory').addEventListener('click', function() {
-    // Get all variants from the variants grid
-    const allVariants = {};
-    document.querySelectorAll('.variant-card').forEach(card => {
-        const colorCode = card.querySelector('h4').textContent.trim();
-        const allSizes = Array.from(card.querySelectorAll('.size-checkbox'));
         
-        if (allSizes.length > 0) {
-            // Check all checkboxes
-            allSizes.forEach(checkbox => checkbox.checked = true);
-            
-            allVariants[colorCode] = {
-                sizes: allSizes.map(checkbox => ({
-                    sku: checkbox.dataset.sku,
-                    size: checkbox.dataset.size,
-                    stock: parseInt(checkbox.closest('.size-item').querySelector('.stock-level').textContent) || 0
-                }))
-            };
-        }
-    });
-
-    if (Object.keys(allVariants).length === 0) {
-        alert('No variants available');
-        return;
-    }
-
-    // Show product details section
-    document.getElementById('productVariants').style.display = 'none';
-    document.getElementById('productDetails').style.display = 'block';
-
-    // Get product info from the first variant card
-    const firstCard = document.querySelector('.variant-card');
-    const sku = firstCard.querySelector('.size-checkbox').dataset.sku;
-
-    // Fetch product information based on SKU
-    fetch('/get-product-info', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ sku: sku })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success && data.productInfo) {
-            document.getElementById('ukdBrand').textContent = data.productInfo.brand || '';
-            document.getElementById('ukdName').textContent = data.productInfo.name || '';
-            document.getElementById('ukdDescription').textContent = data.productInfo.description || '';
-            document.getElementById('ukdTradePrice').textContent = data.productInfo.tradePriceEx || '0.00';
-            document.getElementById('ukdTradePriceVat').textContent = data.productInfo.tradePriceInc || '0.00';
-        } else {
-            console.error('Error fetching product info:', data.message);
-            alert('Error fetching product information. Please try again.');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred while fetching product information');
-    });
-});
-
-function displayProductInfo(productInfo) {
-    console.log('Displaying product info:', productInfo); // Debug log
-    const productInfoDiv = document.querySelector('.product-info');
-    const productImage = document.getElementById('product-image');
-    const productTitle = document.getElementById('product-title');
-    const productStyleNo = document.getElementById('product-styleNo');
-    const productPrice = document.getElementById('product-price');
-    const productSize = document.getElementById('product-size');
-    const productBrand = document.getElementById('product-brand');
-
-    if (productInfo) {
-        // Display Shopify product info if available
-        if (productInfo.shopify && productInfo.shopify.found) {
-            console.log('Shopify info found:', productInfo.shopify); // Debug log
-            if (productInfo.shopify.image_url) {
-                productImage.src = productInfo.shopify.image_url;
-                productImage.style.display = 'block';
-            } else {
-                productImage.style.display = 'none';
-            }
-            productTitle.textContent = productInfo.shopify.title || 'No title available';
-            productPrice.textContent = productInfo.shopify.price ? `£${productInfo.shopify.price}` : 'Price not available';
-        } else {
-            console.log('No Shopify info found'); // Debug log
-            productImage.style.display = 'none';
-            productTitle.textContent = 'Product not found in Shopify';
-            productPrice.textContent = 'Price not available';
-        }
-
-        // Display UKD product info
-        productStyleNo.textContent = productInfo.styleNo || 'Not available';
-        productSize.textContent = productInfo.size || 'Not available';
-        productBrand.textContent = productInfo.brand || 'Not available';
-
-        productInfoDiv.style.display = 'block';
-        console.log('Product info div displayed'); // Debug log
-    } else {
-        productInfoDiv.style.display = 'none';
-    }
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    let lastScannedBarcode = '';
-    let scanTimeout;
-    let scanHistory = new Set(); // Use a Set to store unique scan entries
-    
-    // Initialize the modal
-    const scanResultModal = new bootstrap.Modal(document.getElementById('scanResultModal'));
-    
-    function handleBarcodeInput(barcode) {
-        clearTimeout(scanTimeout);
+        // Clear previous results
+        variantsGrid.innerHTML = '';
+        productVariants.style.display = 'none';
         
-        fetch('/scan-barcode', {
+        fetch('/search-product', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ barcode: barcode })
+            body: JSON.stringify({
+                distributor: distributor,
+                productCode: code
+            })
         })
         .then(response => response.json())
         .then(data => {
-            console.log('Received data:', data);
             if (data.success) {
-                // Update the product found display
-                document.getElementById('foundStyleNo').textContent = data.styleNo || 'N/A';
-                document.getElementById('foundSize').textContent = data.size || 'N/A';
-                document.getElementById('foundBrand').textContent = data.brand || 'N/A';
-                document.getElementById('productFound').style.display = 'block';
-                
-                // Create unique key for history entry
-                const historyKey = `${data.styleNo}-${data.size}`;
-                
-                // Only add to history if it's not already there
-                if (!scanHistory.has(historyKey)) {
-                    scanHistory.add(historyKey);
-                    
-                    // Create history entry
-                    const historyEntry = document.createElement('a');
-                    historyEntry.className = 'list-group-item list-group-item-action';
-                    historyEntry.href = '#';
-                    
-                    const timestamp = new Date().toLocaleTimeString();
-                    historyEntry.innerHTML = `
-                        <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1">${data.styleNo} - Size ${data.size}</h5>
-                            <small>${timestamp}</small>
-                        </div>
-                        <p class="mb-1">${data.brand}</p>
-                    `;
-                    
-                    // Add to the top of the history
-                    const historyContainer = document.getElementById('scanHistory');
-                    historyContainer.insertBefore(historyEntry, historyContainer.firstChild);
-                }
-                
-                // Clear the input field
-                document.getElementById('barcodeInput').value = '';
-                lastScannedBarcode = '';
+                currentVariants = data.variants;
+                displayVariants(data.variants);
+                productVariants.style.display = 'block';
+                variantsTitle.textContent = `Found ${data.totalVariants} variants`;
+                updateInitialButtonState();
             } else {
-                console.error('Error:', data.message);
-                alert('No product found for this barcode');
+                alert(data.message || 'No variants found');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('An error occurred while scanning the barcode');
+            alert('Error searching for product');
+        });
+    });
+    
+    function displayVariants(variants) {
+        variantsGrid.innerHTML = '';
+        
+        Object.entries(variants).forEach(([colorCode, colorData]) => {
+            const colorCard = document.createElement('div');
+            colorCard.className = 'variant-card';
+            
+            // Get the real color name from the variant data
+            const colorName = colorData.color || colorCode;
+            
+            // Create color header
+            const colorHeader = document.createElement('div');
+            colorHeader.className = 'color-header';
+            colorHeader.innerHTML = `
+                <h4>${colorName}</h4>
+                <label>
+                    <input type="checkbox" class="color-checkbox" data-color="${colorCode}" checked>
+                    Select All
+                </label>
+            `;
+            
+            // Create image gallery
+            const imageContainer = document.createElement('div');
+            imageContainer.className = 'image-container';
+            
+            if (colorData.image_url && colorData.image_url.length > 0) {
+                const galleryWrapper = document.createElement('div');
+                galleryWrapper.className = 'gallery-wrapper';
+                
+                const galleryImages = document.createElement('div');
+                galleryImages.className = 'gallery-images';
+                
+                colorData.image_url.forEach((url, index) => {
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.alt = `${colorName} variant image ${index + 1}`;
+                    img.className = 'gallery-image';
+                    img.loading = 'lazy'; // Add lazy loading
+                    galleryImages.appendChild(img);
+                });
+                
+                // Add navigation arrows if there are multiple images
+                if (colorData.image_url.length > 1) {
+                    const prevButton = document.createElement('button');
+                    prevButton.className = 'gallery-arrow prev';
+                    prevButton.innerHTML = '<svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>';
+                    prevButton.setAttribute('aria-label', 'Previous image');
+                    
+                    const nextButton = document.createElement('button');
+                    nextButton.className = 'gallery-arrow next';
+                    nextButton.innerHTML = '<svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>';
+                    nextButton.setAttribute('aria-label', 'Next image');
+                    
+                    // Add navigation dots
+                    const galleryNav = document.createElement('div');
+                    galleryNav.className = 'gallery-nav';
+                    
+                    colorData.image_url.forEach((_, index) => {
+                        const dot = document.createElement('div');
+                        dot.className = `gallery-dot ${index === 0 ? 'active' : ''}`;
+                        dot.dataset.index = index;
+                        dot.setAttribute('role', 'button');
+                        dot.setAttribute('aria-label', `Go to image ${index + 1}`);
+                        galleryNav.appendChild(dot);
+                    });
+                    
+                    // Set up gallery navigation
+                    let currentIndex = 0;
+                    
+                    function updateGallery(newIndex) {
+                        if (newIndex === currentIndex) return;
+                        
+                        const direction = newIndex > currentIndex ? 1 : -1;
+                        galleryImages.style.transition = 'transform 0.3s ease';
+                        currentIndex = newIndex;
+                        
+                        requestAnimationFrame(() => {
+                            galleryImages.style.transform = `translateX(-${currentIndex * 100}%)`;
+                            galleryNav.querySelectorAll('.gallery-dot').forEach((dot, index) => {
+                                dot.classList.toggle('active', index === currentIndex);
+                            });
+                        });
+                    }
+                    
+                    prevButton.addEventListener('click', () => {
+                        const newIndex = (currentIndex - 1 + colorData.image_url.length) % colorData.image_url.length;
+                        updateGallery(newIndex);
+                    });
+                    
+                    nextButton.addEventListener('click', () => {
+                        const newIndex = (currentIndex + 1) % colorData.image_url.length;
+                        updateGallery(newIndex);
+                    });
+                    
+                    galleryNav.addEventListener('click', (e) => {
+                        if (e.target.classList.contains('gallery-dot')) {
+                            updateGallery(parseInt(e.target.dataset.index));
+                        }
+                    });
+                    
+                    // Add touch swipe support
+                    let touchStartX = 0;
+                    let touchEndX = 0;
+                    
+                    galleryWrapper.addEventListener('touchstart', (e) => {
+                        touchStartX = e.touches[0].clientX;
+                    }, { passive: true });
+                    
+                    galleryWrapper.addEventListener('touchmove', (e) => {
+                        touchEndX = e.touches[0].clientX;
+                    }, { passive: true });
+                    
+                    galleryWrapper.addEventListener('touchend', () => {
+                        const swipeDistance = touchEndX - touchStartX;
+                        if (Math.abs(swipeDistance) > 50) { // Minimum swipe distance
+                            if (swipeDistance > 0) {
+                                // Swipe right - go to previous
+                                const newIndex = (currentIndex - 1 + colorData.image_url.length) % colorData.image_url.length;
+                                updateGallery(newIndex);
+                            } else {
+                                // Swipe left - go to next
+                                const newIndex = (currentIndex + 1) % colorData.image_url.length;
+                                updateGallery(newIndex);
+                            }
+                        }
+                    });
+                    
+                    galleryWrapper.appendChild(prevButton);
+                    galleryWrapper.appendChild(nextButton);
+                    galleryWrapper.appendChild(galleryImages);
+                    imageContainer.appendChild(galleryWrapper);
+                    imageContainer.appendChild(galleryNav);
+                } else {
+                    galleryWrapper.appendChild(galleryImages);
+                    imageContainer.appendChild(galleryWrapper);
+                }
+            } else {
+                imageContainer.innerHTML = '<div class="no-image-placeholder">No image available</div>';
+            }
+            
+            // Create sizes list
+            const sizesList = document.createElement('div');
+            sizesList.className = 'sizes-list';
+            
+            // Create a variant details container (initially hidden)
+            const variantDetailsContainer = document.createElement('div');
+            variantDetailsContainer.className = 'variant-details-container';
+            variantDetailsContainer.style.display = 'none';
+            variantDetailsContainer.style.marginTop = '15px';
+            variantDetailsContainer.style.padding = '10px';
+            variantDetailsContainer.style.backgroundColor = '#f8f9fa';
+            variantDetailsContainer.style.borderRadius = '4px';
+            variantDetailsContainer.style.border = '1px solid #eee';
+            variantDetailsContainer.style.fontSize = '14px';
+            
+            colorData.sizes.forEach(size => {
+                const sizeItem = document.createElement('div');
+                sizeItem.className = 'size-item';
+                
+                // Determine stock level class
+                const stockCount = parseInt(size.stock) || 0;
+                let stockClass = 'stock-empty';
+                if (stockCount > 3) {
+                    stockClass = 'stock-good';
+                } else if (stockCount > 0) {
+                    stockClass = 'stock-warning';
+                }
+                
+                sizeItem.innerHTML = `
+                    <label>
+                        <input type="checkbox" class="size-checkbox" 
+                               data-color="${colorCode}" 
+                               data-color-name="${colorName}"
+                               data-size="${size.size}"
+                               data-sku="${size.sku}"
+                               data-ean13="${size.ean13 || ''}"
+                               data-price="${size.price || '0.00'}"
+                               data-vat="${size.vat || '0.00'}"
+                               checked>
+                        Size ${size.size}
+                        <span class="stock-count ${stockClass}">${stockCount}</span>
+                    </label>
+                `;
+                
+                // Add a click event to show detailed information
+                sizeItem.addEventListener('click', function(e) {
+                    // Don't interfere with checkbox clicks
+                    if (e.target.type === 'checkbox') return;
+                    
+                    // Display variant details when a size is clicked
+                    const checkbox = sizeItem.querySelector('.size-checkbox');
+                    
+                    // Log the variant data for debugging
+                    console.log("Variant data:", {
+                        sku: checkbox.dataset.sku,
+                        color: checkbox.dataset.colorName,
+                        size: checkbox.dataset.size,
+                        ean13: checkbox.dataset.ean13,
+                        price: checkbox.dataset.price,
+                        vat: checkbox.dataset.vat,
+                        stock: checkbox.closest('.size-item').querySelector('.stock-count').textContent
+                    });
+                    
+                    variantDetailsContainer.innerHTML = `
+                        <div style="font-weight: bold; margin-bottom: 8px;">Variant Details:</div>
+                        <div>SKU: ${checkbox.dataset.sku}</div>
+                        <div>Color: ${checkbox.dataset.colorName}</div>
+                        <div>Size: ${checkbox.dataset.size}</div>
+                        <div>EAN13: ${checkbox.dataset.ean13 || 'N/A'}</div>
+                        <div>Price: £${checkbox.dataset.price || '0.00'}</div>
+                        <div>Price (inc VAT): £${checkbox.dataset.vat || '0.00'}</div>
+                        <div>Stock: ${checkbox.closest('.size-item').querySelector('.stock-count').textContent}</div>
+                    `;
+                    variantDetailsContainer.style.display = 'block';
+                });
+                
+                sizesList.appendChild(sizeItem);
+            });
+            
+            colorCard.appendChild(colorHeader);
+            colorCard.appendChild(imageContainer);
+            colorCard.appendChild(sizesList);
+            colorCard.appendChild(variantDetailsContainer);
+            variantsGrid.appendChild(colorCard);
+        });
+        
+        // Add event listeners for checkboxes
+        setupCheckboxListeners();
+    }
+    
+    function setupCheckboxListeners() {
+        // Color checkbox listeners
+        document.querySelectorAll('.color-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const colorCode = this.dataset.color;
+                const sizeCheckboxes = document.querySelectorAll(`.size-checkbox[data-color="${colorCode}"]`);
+                sizeCheckboxes.forEach(sizeBox => {
+                    sizeBox.checked = this.checked;
+                });
+                updateAddSelectedButton();
+            });
+        });
+        
+        // Size checkbox listeners
+        document.querySelectorAll('.size-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                updateAddSelectedButton();
+                
+                // Update color checkbox state
+                const colorCode = this.dataset.color;
+                const colorCheckbox = document.querySelector(`.color-checkbox[data-color="${colorCode}"]`);
+                const sizeCheckboxes = document.querySelectorAll(`.size-checkbox[data-color="${colorCode}"]`);
+                const allChecked = Array.from(sizeCheckboxes).every(box => box.checked);
+                const someChecked = Array.from(sizeCheckboxes).some(box => box.checked);
+                
+                colorCheckbox.checked = allChecked;
+                colorCheckbox.indeterminate = someChecked && !allChecked;
+            });
         });
     }
-
-    function displayProductInfoInModal(productInfo) {
-        console.log('Displaying product info in modal:', productInfo);
-        const productImage = document.getElementById('modal-product-image');
-        const productTitle = document.getElementById('modal-product-title');
-        const productStyleNo = document.getElementById('modal-product-styleNo');
-        const productPrice = document.getElementById('modal-product-price');
-        const productSize = document.getElementById('modal-product-size');
-        const productBrand = document.getElementById('modal-product-brand');
-
-        if (productInfo) {
-            // Display Shopify product info if available
-            if (productInfo.shopify && productInfo.shopify.found) {
-                console.log('Shopify info found:', productInfo.shopify);
-                if (productInfo.shopify.image_url) {
-                    productImage.src = productInfo.shopify.image_url;
-                    productImage.style.display = 'block';
-                } else {
-                    productImage.style.display = 'none';
-                }
-                productTitle.textContent = productInfo.shopify.title || 'No title available';
-                productPrice.textContent = productInfo.shopify.price ? `£${productInfo.shopify.price}` : 'Price not available';
-            } else {
-                console.log('No Shopify info found');
-                productImage.style.display = 'none';
-                productTitle.textContent = 'Product not found in Shopify';
-                productPrice.textContent = 'Price not available';
-            }
-
-            // Display UKD product info
-            productStyleNo.textContent = productInfo.styleNo || 'Not available';
-            productSize.textContent = productInfo.size || 'Not available';
-            productBrand.textContent = productInfo.brand || 'Not available';
+    
+    function updateAddSelectedButton() {
+        const anyChecked = document.querySelectorAll('.size-checkbox:checked').length > 0;
+        addSelectedBtn.disabled = !anyChecked;
+    }
+    
+    function getSelectedSkus() {
+        const selectedSkus = [];
+        document.querySelectorAll('.size-checkbox:checked').forEach(checkbox => {
+            selectedSkus.push(checkbox.dataset.sku);
+        });
+        return selectedSkus;
+    }
+    
+    addSelectedBtn.addEventListener('click', function() {
+        const selectedSkus = getSelectedSkus();
+        if (selectedSkus.length > 0) {
+            proceedToProductDetails(selectedSkus);
         }
+    });
+    
+    function proceedToProductDetails(skus) {
+        const firstSku = skus[0];
+        console.log('Selected SKUs:', skus);
+        
+        // Create variants data from selected checkboxes
+        const selectedVariants = {};
+        document.querySelectorAll('.size-checkbox:checked').forEach(checkbox => {
+            const colorCode = checkbox.dataset.color;
+            const colorName = checkbox.dataset.colorName;
+            const size = checkbox.dataset.size;
+            const sku = checkbox.dataset.sku;
+            
+            // Get stock from the displayed stock value
+            const stockElement = checkbox.closest('.size-item').querySelector('.stock-count');
+            const stock = stockElement ? parseInt(stockElement.textContent) || 0 : 0;
+            
+            if (!selectedVariants[colorCode]) {
+                selectedVariants[colorCode] = {
+                    sizes: [],
+                    color: colorName
+                };
+                // Get image URLs from the color card
+                const colorCard = checkbox.closest('.variant-card');
+                const images = colorCard.querySelectorAll('.gallery-image');
+                selectedVariants[colorCode].image_url = Array.from(images).map(img => img.src);
+            }
+            
+            // Find the variant data in the original variants data
+            const originalVariant = currentVariants[colorCode]?.sizes.find(s => s.sku === sku);
+            
+            selectedVariants[colorCode].sizes.push({
+                size: size,
+                sku: sku,
+                stock: stock,  // Include the stock quantity
+                ean13: checkbox.dataset.ean13 || '',
+                price: checkbox.dataset.price || '0.00',
+                vat: checkbox.dataset.vat || '0.00'
+            });
+        });
+        
+        console.log('Selected Variants Data:', selectedVariants);
+        
+        fetch('/get-product-info', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                sku: firstSku
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.productInfo) {
+                console.log('Product Info:', data.productInfo);
+                console.log('Response Variants:', data.variants);
+                
+                // Show the product details section
+                const productDetails = document.getElementById('productDetails');
+                if (productDetails) {
+                    productDetails.style.display = 'block';
+                }
+
+                // Update the UKD info fields
+                const fields = {
+                    ukdName: data.productInfo.name,
+                    ukdBrand: data.productInfo.brand,
+                    ukdDescription: data.productInfo.description,
+                    ukdTradePrice: data.productInfo.tradePriceEx,
+                    ukdTradePriceInc: data.productInfo.tradePriceInc
+                };
+
+                Object.entries(fields).forEach(([id, value]) => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.textContent = value || '';
+                    }
+                });
+
+                // Store the variants data
+                const variantsData = document.getElementById('variants_data');
+                if (variantsData) {
+                    // Use the selected variants that include the stock information
+                    console.log('Storing variants data:', selectedVariants);
+                    variantsData.value = JSON.stringify(selectedVariants);
+                }
+
+                // Pre-fill the product name
+                const productNameInput = document.getElementById('product_name');
+                if (productNameInput && data.productInfo.name) {
+                    productNameInput.value = data.productInfo.name;
+                }
+            } else {
+                console.error('Failed to get product info:', data);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+    
+    // Handle form submission
+    document.getElementById('productDetailsForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const productName = formData.get('product_name');
+        const price = formData.get('price');
+        const variantsData = formData.get('variants_data');
+
+        const missingFields = [];
+        if (!productName) missingFields.push('Product Name');
+        if (!price) missingFields.push('Price');
+        if (!variantsData) missingFields.push('Variants Data (please select variants first)');
+
+        if (missingFields.length > 0) {
+            alert('Please fill in the following required fields:\n- ' + missingFields.join('\n- '));
+            return;
+        }
+
+        // Send data to backend to create product
+        fetch('/create-product', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                productName: productName,
+                price: price,
+                variants: JSON.parse(variantsData)
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Product created successfully
+                console.log("Product created successfully:", data);
+                
+                if (data.productUrl) {
+                    if (data.openInNewTab) {
+                        window.open(data.productUrl, '_blank');
+                    } else {
+                        window.location.href = data.productUrl;
+                    }
+                } else {
+                    window.location.href = '/inventory';
+                }
+            } else {
+                alert(data.message || 'Error creating product');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error creating product');
+        });
+    });
+
+    // Update the initial state of the Add Selected button after displaying variants
+    function updateInitialButtonState() {
+        const anyChecked = document.querySelectorAll('.size-checkbox:checked').length > 0;
+        addSelectedBtn.disabled = !anyChecked;
     }
 
-    // Handle barcode scanner input
-    const barcodeInput = document.getElementById('barcodeInput');
-    barcodeInput.addEventListener('input', function(e) {
-        const currentInput = e.target.value;
-        
-        // If this is a new scan starting
-        if (!lastScannedBarcode) {
-            lastScannedBarcode = currentInput;
-            
-            // Set a timeout to process the complete barcode
-            scanTimeout = setTimeout(() => {
-                if (lastScannedBarcode) {
-                    handleBarcodeInput(lastScannedBarcode);
-                }
-            }, 100);
-        } else {
-            // Update the current scan
-            lastScannedBarcode = currentInput;
-        }
-    });
-
-    // Handle the confirm button click
-    document.getElementById('confirmProduct').addEventListener('click', function() {
-        scanResultModal.hide();
-    });
+    // Remove the Add All Items button
+    const addAllBtn = document.getElementById('addAllToInventory');
+    if (addAllBtn) {
+        addAllBtn.remove();
+    }
 });
 </script>
 {% endblock %} 

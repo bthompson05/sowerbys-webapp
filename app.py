@@ -10,6 +10,7 @@ from modules.UKD import UKDStock
 from queue import Queue
 import threading
 import time
+import csv
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'  # Change this to a secure secret key in production
@@ -324,11 +325,43 @@ def toggle_status(email):
     
     return redirect(url_for('admin_dashboard'))
 
-@app.route('/admin/dashboard')
+@app.route('/admin-dashboard')
 @login_required
 @admin_required
 def admin_dashboard():
-    return render_template('admin_dashboard.html', users=USERS)
+    # Get user data
+    users = USERS
+    
+    # Get product information from UKD
+    ukd = UKDStock()
+    products = ukd.GetAllProducts()
+    
+    # Calculate product statistics
+    total_products = len(products)
+    in_stock_products = sum(1 for p in products if p.get('inStock', 0) > 0)
+    out_of_stock_products = total_products - in_stock_products
+    
+    # Calculate brand statistics
+    brands = set(p.get('brand', '') for p in products)
+    brand_count = len(brands)
+    active_brands = len(set(p.get('brand', '') for p in products if p.get('inStock', 0) > 0))
+    
+    # Calculate price statistics
+    prices = [float(p.get('price', 0)) for p in products if p.get('price')]
+    avg_price = round(sum(prices) / len(prices), 2) if prices else 0
+    min_price = round(min(prices), 2) if prices else 0
+    max_price = round(max(prices), 2) if prices else 0
+    
+    return render_template('admin_dashboard.html', 
+                         users=users,
+                         total_products=total_products,
+                         in_stock_products=in_stock_products,
+                         out_of_stock_products=out_of_stock_products,
+                         brand_count=brand_count,
+                         active_brands=active_brands,
+                         avg_price=avg_price,
+                         min_price=min_price,
+                         max_price=max_price)
 
 @app.route('/stock/add')
 @login_required
@@ -570,6 +603,110 @@ def search_product():
             ukd = UKDStock()
             stock_data = ukd.GetFullStock()
             
+            # Load UKD data file to get color names and EAN13 codes
+            data_file_path = os.path.join("files", "UKDData.csv")
+            ukd_data = {}
+            
+            print(f"\n=== Processing UKD Search ===")
+            print(f"Product code: {product_code}")
+            print(f"Looking for data file: {data_file_path}")
+            
+            if os.path.exists(data_file_path):
+                print(f"File exists, processing...")
+                try:
+                    # Read the entire file as a string to fix line break issues
+                    with open(data_file_path, 'r', encoding='utf-8-sig') as file:
+                        file_contents = file.read()
+                        
+                    # Fix line endings and excessive whitespace
+                    cleaned_content = file_contents.replace('\r', '').replace('\n', '').replace('  ', ' ')
+                    
+                    # Create a list of rows with proper line breaks
+                    rows = [row for row in cleaned_content.split(product_code) if row]
+                    
+                    # Process the first row to get headers
+                    header_row = rows[0] if rows else ""
+                    headers = header_row.split(',')
+                    
+                    # Find column indices
+                    style_idx = 0  # StyleNo is first column
+                    color_idx = 3  # Color is 4th column
+                    size_idx = 13  # Size is 14th column
+                    price_idx = 14 # Price is 15th column
+                    vat_idx = 15   # VAT is 16th column
+                    ean13_idx = 17  # EAN13 is 18th column
+                    
+                    print(f"Using fixed column indices:")
+                    print(f" - StyleNo: {style_idx}")
+                    print(f" - Color: {color_idx}")
+                    print(f" - Size: {size_idx}")
+                    print(f" - Price: {price_idx}")
+                    print(f" - VAT: {vat_idx}")
+                    print(f" - EAN13: {ean13_idx}")
+                    
+                    matched_count = 0
+                    
+                    # Use the UKD.GetProductInfo method to get product info directly
+                    for sku, stock in stock_data.items():
+                        base_sku = sku.split('-')[0] if '-' in sku else sku
+                        if base_sku.upper().startswith(product_code.upper()):
+                            parts = sku.split('-')
+                            if len(parts) >= 2:
+                                color_code = parts[0].rstrip('+')
+                                size = parts[1]
+                                
+                                # Try to get more detailed info
+                                product_info = ukd.GetProductInfo(color_code)
+                                if product_info:
+                                    matched_count += 1
+                                    ukd_data[sku] = {
+                                        'color_name': product_info.get('color', color_code),
+                                        'ean13': product_info.get('ean13', ''),
+                                        'tradePriceEx': product_info.get('tradePriceEx', '0.00'),
+                                        'tradePriceInc': product_info.get('tradePriceInc', '0.00')
+                                    }
+                                    if matched_count <= 3:  # Just show the first few matches for debugging
+                                        print(f"Found match via GetProductInfo: {sku}")
+                                        print(f" - Color: {product_info.get('color', 'N/A')}")
+                                        print(f" - EAN13: {product_info.get('ean13', 'N/A')}")
+                                        print(f" - Price (ex VAT): £{product_info.get('tradePriceEx', '0.00')}")
+                                        print(f" - Price (inc VAT): £{product_info.get('tradePriceInc', '0.00')}")
+                    
+                    # If no data was found, use the barcode map
+                    if not ukd_data:
+                        print("No data found via GetProductInfo, using BarcodeMap")
+                        for barcode, info in ukd.BarcodeMap.items():
+                            style_no = info.get('styleNo', '')
+                            if style_no.upper().startswith(product_code.upper()):
+                                size = info.get('size', '')
+                                sku = f"{style_no}-{size}"
+                                color_name = info.get('color', style_no)
+                                trade_price_ex = info.get('tradePriceEx', '0.00')
+                                trade_price_inc = info.get('tradePriceInc', '0.00')
+                                
+                                ukd_data[sku] = {
+                                    'color_name': color_name,
+                                    'ean13': barcode,
+                                    'tradePriceEx': trade_price_ex,
+                                    'tradePriceInc': trade_price_inc
+                                }
+                                
+                                matched_count += 1
+                                if matched_count <= 3:
+                                    print(f"Found match via BarcodeMap: {sku}")
+                                    print(f" - Color: {color_name}")
+                                    print(f" - EAN13: {barcode}")
+                                    print(f" - Price (ex VAT): £{trade_price_ex}")
+                                    print(f" - Price (inc VAT): £{trade_price_inc}")
+                    
+                    print(f"Found {matched_count} matches")
+                    print(f"UKD data contains {len(ukd_data)} entries")
+                
+                except Exception as e:
+                    print(f"Error processing UKD data file: {str(e)}")
+            else:
+                print(f"UKD data file not found at {data_file_path}")
+            
             # Group variants by color (ignoring + suffix)
             variants = {}
             total_variants = 0
@@ -589,6 +726,10 @@ def search_product():
             # Download images for all color codes
             downloaded_images = download_product_images(color_codes)
             
+            # Get product info for additional details
+            style_info = ukd.GetProductInfo(product_code) or {}
+            print(f"Style info for {product_code}: {style_info}")
+            
             # Second pass: group variants and use downloaded images
             for sku, stock in stock_data.items():
                 base_sku = sku.split('-')[0] if '-' in sku else sku
@@ -600,20 +741,63 @@ def search_product():
                         color_code = parts[0].rstrip('+')
                         size = parts[1]
                         
+                        # Get color name and EAN13 from the UKD data
+                        ukd_item_data = ukd_data.get(sku, {})
+                        color_name = ukd_item_data.get('color_name', color_code)
+                        ean13_code = ukd_item_data.get('ean13', '')
+                        
+                        # Get price information from ukd_data or style_info
+                        ex_price = ukd_item_data.get('tradePriceEx', style_info.get('tradePriceEx', '0.00'))
+                        inc_price = ukd_item_data.get('tradePriceInc', style_info.get('tradePriceInc', '0.00'))
+                        
+                        # Clean up EAN13 code (remove any non-digit characters)
+                        cleaned_ean13 = ''.join(c for c in str(ean13_code) if c.isdigit())
+                        if cleaned_ean13 and len(cleaned_ean13) >= 8:  # Minimum length for a valid barcode
+                            ean13_code = cleaned_ean13
+                        
+                        # If we have no data from UKD data file, try to get barcode via BarcodeMap
+                        if not ean13_code:
+                            for barcode, info in ukd.BarcodeMap.items():
+                                if info.get('styleNo') == color_code and info.get('size') == size:
+                                    ean13_code = barcode
+                                    # Also try to get price from BarcodeMap if not set yet
+                                    if ex_price == '0.00':
+                                        ex_price = info.get('tradePriceEx', '0.00')
+                                    if inc_price == '0.00':
+                                        inc_price = info.get('tradePriceInc', '0.00')
+                                    break
+                        
+                        # For debugging
+                        if total_variants < 3:
+                            print(f"Processing variant: {sku}")
+                            print(f" - Color code: {color_code}")
+                            print(f" - Color name: {color_name}")
+                            print(f" - EAN13: {ean13_code}")
+                            print(f" - Price (ex VAT): £{ex_price}")
+                            print(f" - Price (inc VAT): £{inc_price}")
+                            print(f" - UKD data entry: {ukd_data.get(sku)}")
+                        
                         # Initialize color group if it doesn't exist
                         if color_code not in variants:
                             variants[color_code] = {
                                 'sizes': [],
-                                'image_url': downloaded_images.get(color_code, [])  # Use downloaded images
+                                'image_url': downloaded_images.get(color_code, []),  # Use downloaded images
+                                'color': color_name  # Use actual color name instead of color code
                             }
                         
-                        # Add size variant
+                        # Add size variant with extended information
                         variants[color_code]['sizes'].append({
                             'sku': sku,
                             'size': size,
-                            'stock': stock
+                            'stock': stock,
+                            'ean13': ean13_code,  # Use actual EAN13 from data
+                            'price': ex_price,
+                            'vat': inc_price
                         })
                         total_variants += 1
+            
+            print(f"Total variants found: {total_variants}")
+            print(f"=== End of Processing ===\n")
             
             if variants:
                 return jsonify({
@@ -694,9 +878,6 @@ def save_product_details():
         product_details = {
             'product_name': request.form.get('product_name'),
             'price': request.form.get('price'),
-            'exclude_ebay': request.form.get('exclude_ebay') == 'on',
-            'exclude_amazon': request.form.get('exclude_amazon') == 'on',
-            'stock_in_store': request.form.get('stock_in_store') == 'on',
             # Add UKD info
             'brand': 'ROAMERS',
             'description': 'Twin Gusset Boot',
@@ -725,6 +906,7 @@ def save_product_details():
 @app.route('/review-product', methods=['GET'])
 @login_required
 def review_product():
+    variants_data = session.get('variants_data')
     variants_data = session.get('variants_data')
     product_details = session.get('product_details')
     
@@ -756,9 +938,15 @@ def get_product_info():
             print("No SKU provided in request")
             return jsonify({'success': False, 'message': 'SKU is required'})
         
+        # Extract the base style number from the SKU (everything before the size)
+        style_no = sku.split('-')[0] if '-' in sku else sku
+        style_no = style_no.rstrip('+')  # Remove any '+' suffix
+        
+        print(f"Extracted style number: {style_no}")
+        
         ukd = UKDStock()
-        print(f"Calling GetProductInfo for SKU: {sku}")
-        product_info = ukd.GetProductInfo(sku)
+        print(f"Calling GetProductInfo for style number: {style_no}")
+        product_info = ukd.GetProductInfo(style_no)
         print(f"Product info result: {product_info}")
         
         if product_info:
@@ -773,7 +961,7 @@ def get_product_info():
                 }
             })
         else:
-            print(f"No product information found for SKU: {sku}")
+            print(f"No product information found for style number: {style_no}")
             return jsonify({'success': False, 'message': 'Product information not found'})
             
     except Exception as e:
@@ -795,91 +983,15 @@ def log_shopify_command(command_type, data):
 @app.route('/post-to-shopify', methods=['POST'])
 @login_required
 def post_to_shopify():
+    # This function is now deprecated and redirects to the create-product endpoint
     try:
         data = request.get_json()
-        print("Received data:", json.dumps(data, indent=2))  # Debug log
-        
-        product_name = data.get('product_name')
-        price = data.get('price')
-        variants_data = data.get('variants', {})  # This is now a dictionary
-        product_info = data.get('productInfo', {})
-        
-        # Initialize ShopifyResources
-        shopify = ShopifyResources()
-        
-        # Format the description HTML with proper escaping
-        description_html = f"""
-        <strong>Brand:</strong> {product_info.get('brand', '')}<br>
-        <strong>Description:</strong> {product_info.get('description', '')}<br>
-        <strong>Trade Price (ex VAT):</strong> £{product_info.get('tradePriceEx', '0.00')}<br>
-        <strong>Trade Price (inc VAT):</strong> £{product_info.get('tradePriceInc', '0.00')}
-        """.replace('"', '\\"').strip()
-        
-        # Format variants for Shopify
-        variants_list = []
-        for color_code, color_group in variants_data.items():
-            for size_variant in color_group.get('sizes', []):
-                variant = {
-                    'options': [color_code, size_variant.get('size', '')],
-                    'sku': size_variant.get('sku', ''),
-                    'price': float(price),
-                    'inventoryItem': {
-                        'tracked': True,
-                        'cost': float(product_info.get('tradePriceEx', 0))
-                    },
-                    'inventoryPolicy': 'DENY',
-                    'inventoryQuantities': [{
-                        'locationId': shopify.UKD_LocationID,
-                        'availableQuantity': int(size_variant.get('stock', 0))
-                    }]
-                }
-                variants_list.append(variant)
-        
-        # Convert variants list to GraphQL format
-        variants_str = '['
-        for variant in variants_list:
-            variants_str += f"""{{
-                options: {json.dumps(variant['options'])},
-                sku: "{variant['sku']}",
-                price: {variant['price']},
-                inventoryItem: {{
-                    tracked: true,
-                    cost: {variant['inventoryItem']['cost']}
-                }},
-                inventoryPolicy: DENY,
-                inventoryQuantities: [{{
-                    locationId: "{variant['inventoryQuantities'][0]['locationId']}",
-                    availableQuantity: {variant['inventoryQuantities'][0]['availableQuantity']}
-                }}]
-            }},"""
-        variants_str = variants_str.rstrip(',') + ']'
-        
-        print("Formatted variants:", variants_str)  # Debug log
-        
-        # Create product in Shopify using AddProducts method
-        response = shopify.AddProducts(
-            Title=product_name,
-            Description=description_html,
-            Variants=variants_str,
-            Images='[]',  # No images for now
-            Vendor=product_info.get('brand', '')
-        )
-        
-        print("Shopify API response:", response)  # Debug log
-        
-        if response:
-            return jsonify({
-                'success': True,
-                'message': 'Product successfully created in Shopify'
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'message': 'Failed to create product in Shopify'
-            })
-            
+        return jsonify({
+            'success': False,
+            'message': 'This endpoint is deprecated. Please use /create-product instead.'
+        })
     except Exception as e:
-        print(f"Error posting to Shopify: {str(e)}")
+        print(f"Error in deprecated post_to_shopify: {str(e)}")
         return jsonify({
             'success': False,
             'message': f'Error: {str(e)}'
@@ -1023,6 +1135,153 @@ def check_unfulfilled_orders():
             'success': False,
             'message': str(e)
         })
+
+@app.route('/create-product', methods=['POST'])
+def create_product():
+    try:
+        data = request.json
+        product_name = data.get('productName')
+        price = data.get('price')
+        variants_data = data.get('variants')
+
+        if not all([product_name, price, variants_data]):
+            return jsonify({'success': False, 'message': 'Missing required fields'})
+
+        ukd = UKDStock()
+        shopify = ShopifyResources()
+
+        # Get the first variant to use for product details
+        first_color = next(iter(variants_data.values()))
+        if not first_color or not first_color.get('sizes'):
+            return jsonify({'success': False, 'message': 'No variant data found'})
+
+        # Get the first size data
+        first_size = first_color['sizes'][0]
+        first_sku = first_size['sku']
+        style_no = first_sku.split('-')[0] if '-' in first_sku else first_sku
+        
+        # Get product info from UKD
+        product_info = ukd.GetProductInfo(style_no)
+        if not product_info:
+            return jsonify({'success': False, 'message': 'Product information not found'})
+
+        # Generate description HTML in the desired format
+        upper = product_info.get('upper', '')
+        desc = product_info.get('description', '') # Use 'description' key now
+        sole = product_info.get('sole', '')
+        
+        description_html = f"<ul>"
+        if upper: description_html += f"<li>{upper} upper</li>"
+        if desc: description_html += f"<li>{desc}</li>"
+        if sole: description_html += f"<li>{sole} sole</li>"
+        description_html += f"</ul><p>Don't forget, we pay the postage! Shipped from our family run store in Stourbridge.</p>"
+
+        # Escape quotes for JSON safety within GraphQL
+        description_html = description_html.replace('"', '\\"')
+
+        # Format variants for Shopify
+        variants_list = "["
+        all_color_codes = set()
+        for color_code, color_data in variants_data.items():
+            all_color_codes.add(color_code) # Collect unique color codes
+            for size_data in color_data['sizes']:
+                # Get actual stock quantity from size_data, or default to 0 if not available
+                stock_quantity = size_data.get('stock', 0)
+                
+                # Get the color name
+                color_name = color_data.get('color', color_code)
+                
+                # Get barcode (EAN13) from variant data
+                barcode = size_data.get('ean13', '')
+                # Clean up barcode - ensure it only contains digits
+                barcode = ''.join(c for c in barcode if c.isdigit())
+                
+                # Format variant - include barcode if available
+                if barcode and len(barcode) >= 8:
+                    variant = '''{options: ["%s", "%s"], sku: "%s", barcode: "%s", price: %s, inventoryItem: {tracked: true, cost: 0}, inventoryPolicy: DENY, inventoryQuantities: [{locationId: "%s", availableQuantity: %s}]}''' % (
+                        color_name.strip(), size_data['size'].strip(), size_data['sku'].strip(), barcode, price,
+                        shopify.UKD_LocationID, stock_quantity)
+                else:
+                    variant = '''{options: ["%s", "%s"], sku: "%s", price: %s, inventoryItem: {tracked: true, cost: 0}, inventoryPolicy: DENY, inventoryQuantities: [{locationId: "%s", availableQuantity: %s}]}''' % (
+                        color_name.strip(), size_data['size'].strip(), size_data['sku'].strip(), price,
+                        shopify.UKD_LocationID, stock_quantity)
+                
+                variants_list += variant + ","
+        
+        # Remove trailing comma and close bracket
+        if variants_list.endswith(","):
+            variants_list = variants_list[:-1]
+        variants_list += "]"
+
+        # Generate image list if available
+        images_list = "["
+        all_image_urls = set() # Use a set to avoid duplicate URLs
+        # Ensure we use the collected color codes to find images
+        for color_code in all_color_codes:
+            if color_code in variants_data and variants_data[color_code].get('image_url'):
+                for image_url in variants_data[color_code]['image_url']:
+                    if image_url not in all_image_urls:
+                         # Convert local cached paths to direct UKD URLs that Shopify can access
+                         shopify_accessible_url = ""
+                         if '/static/cache/products/' in image_url:
+                             # Extract the filename from the path
+                             filename = image_url.split('/')[-1]
+                             # Remove .jpg extension if present
+                             base_name = filename.replace('.jpg', '')
+                             # Convert to UKD URL format
+                             shopify_accessible_url = f"https://www.ukdistributors.co.uk/photos/840/{base_name}.jpg"
+                         else:
+                             # If it's already a full URL, use it as is
+                             shopify_accessible_url = image_url
+                         
+                         print(f"Image URL for Shopify: {shopify_accessible_url}")
+                         images_list = images_list + (('''{mediaContentType:IMAGE,originalSource:"%s"}''' % (shopify_accessible_url.strip(),)) + ',')
+                         all_image_urls.add(image_url)
+        # Remove trailing comma and close bracket
+        if images_list.endswith(","):
+            images_list = images_list[:-1]
+        images_list += "]"
+
+        # Create product in Shopify
+        response = shopify.AddProducts(
+            Title=product_name,
+            Description=description_html, # Already formatted HTML
+            Variants=variants_list,       # Pass the JSON string
+            Images=images_list,     # Pass the JSON string
+            Vendor=product_info['brand']
+        )
+
+        if response:
+            # Extract product ID from the response
+            product_id = ""
+            if isinstance(response, dict) and 'id' in response:
+                # The ID might be in the format 'gid://shopify/Product/1234567890'
+                # Extract the numeric part at the end
+                full_id = response['id']
+                if 'gid://shopify/Product/' in full_id:
+                    product_id = full_id.replace('gid://shopify/Product/', '')
+                else:
+                    product_id = full_id
+                product_url = f"https://admin.shopify.com/store/sowerbys/products/{product_id}"
+            else:
+                product_url = "https://admin.shopify.com/store/sowerbys/products"
+                
+            return jsonify({
+                'success': True,
+                'message': 'Product created successfully',
+                'productUrl': product_url,
+                'productId': product_id,
+                'openInNewTab': True
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Failed to create product in Shopify'
+            })
+
+    except Exception as e:
+        print(f"Error creating product: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error creating product: {str(e)}'})
 
 if __name__ == '__main__':
     app.run(debug=True, port=5004)

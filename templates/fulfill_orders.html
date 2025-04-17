@@ -546,70 +546,58 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     function processBarcode(barcode) {
-        console.log('Processing barcode:', barcode);
-        
-        // First, check for unfulfilled orders
-        fetch('/check-unfulfilled-orders', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ sku: barcode })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const ordersList = document.getElementById('ordersList');
-                const noOrders = document.getElementById('noOrders');
-                
-                if (data.orders && data.orders.length > 0) {
-                    ordersList.innerHTML = data.orders.map(order => `
-                        <tr>
-                            <td>${order.order_number}</td>
-                            <td>${new Date(order.created_at).toLocaleDateString()}</td>
-                            <td>${order.product_title}</td>
-                            <td>${order.quantity}</td>
-                        </tr>
-                    `).join('');
-                    ordersList.closest('.table-responsive').style.display = 'block';
-                    noOrders.style.display = 'none';
-                } else {
-                    ordersList.innerHTML = '';
-                    ordersList.closest('.table-responsive').style.display = 'none';
-                    noOrders.style.display = 'block';
-                }
-            } else {
-                console.error('Error checking unfulfilled orders:', data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
+        console.log("Processing barcode:", barcode);
 
-        // Then proceed with the existing product lookup
-        fetch('/get-product', {
+        // Call backend to get product information
+        fetch('/scan-barcode', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({ barcode: barcode })
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
-                document.getElementById('scanView').style.display = 'none';
-                document.getElementById('productView').style.display = 'block';
-                document.getElementById('confirmBtn').style.display = 'block';
+                currentProductData = data; // Store the full data
                 
-                document.getElementById('productTitle').textContent = data.product.title;
-                document.getElementById('productSKU').textContent = `SKU: ${data.product.sku}`;
-                document.getElementById('productDescription').innerHTML = data.product.description;
+                // Use the correct product details container
+                productDetails.style.display = 'block'; 
+
+                // --- Corrected Data Access --- 
+                // Use UKD name as primary title, fallback to Shopify if needed
+                document.getElementById('productTitle').textContent = data.name || (data.shopify && data.shopify.title) || 'No Title Found';
                 
-                if (data.product.image) {
-                    document.getElementById('productImage').src = data.product.image;
+                // Display StyleNo and Size
+                document.getElementById('productSKU').textContent = data.styleNo || 'N/A'; 
+                document.getElementById('productSize').textContent = data.size || 'N/A';
+
+                // Display Shopify price if available
+                if (data.shopify && data.shopify.found && data.shopify.price) {
+                    document.getElementById('productPrice').textContent = `£${data.shopify.price}`;
+                } else {
+                    document.getElementById('productPrice').textContent = 'N/A';
                 }
+                
+                // Display Shopify image if available
+                const productImage = document.getElementById('productImage');
+                if (data.shopify && data.shopify.found && data.shopify.image_url) {
+                    productImage.src = data.shopify.image_url;
+                    productImage.style.display = 'block'; // Show image element
+                } else {
+                    productImage.src = ''; // Clear src
+                    productImage.style.display = 'none'; // Hide image element
+                }
+                // --- End Corrected Data Access ---
+                
             } else {
-                alert('Product not found');
+                alert(data.message || 'Product not found');
+                productDetails.style.display = 'none'; // Hide details on failure
             }
         })
         .catch(error => {

@@ -1,239 +1,77 @@
 {% extends "base.html" %}
 
+{% block title %}Product Details - Sowerbys Shoes{% endblock %}
+
 {% block content %}
-<div class="page-header">
-    <h1 class="page-title">Product Details</h1>
-</div>
-
-<div class="content-section">
-    <!-- Display UKD Product Information -->
-    <div class="product-info">
-        <p>Brand: ROAMERS</p>
-        <p>Description: Twin Gusset Boot</p>
-        <p>TradePrice (exc VAT): £18.25 (inc VAT): £21.90</p>
-        <p>Colours: Black, Tan</p>
-        <p>Sizes: 6, 7, 8, 9, 10, 11, 12</p>
-        <p>Initial Number of Variants: 14 (must be less than 100)</p>
-    </div>
-
-    <form method="POST" action="{{ url_for('save_product_details') }}" id="productDetailsForm">
-        <!-- Hidden input for variants data -->
-        <input type="hidden" name="variants_data" id="variants_data" value="{{ variants_data|tojson|safe }}">
+<div class="container">
+    <form id="productForm" action="{{ url_for('save_product_details') }}" method="POST">
+        <input type="hidden" name="variants_data" value="{{ variants_data }}">
         
-        <div class="form-section">
-            <!-- Product Name Input -->
-            <div class="form-group">
-                <label for="product_name">Enter Name for Product Listing:</label>
-                <input type="text" class="form-control" id="product_name" name="product_name" 
-                       value="{{ product_details.product_name or '' }}" required>
-            </div>
-
-            <!-- Price Input -->
-            <div class="form-group">
-                <label for="price">Price:</label>
-                <div class="input-group">
-                    <span class="input-group-text">£</span>
-                    <input type="number" class="form-control" id="price" name="price" step="0.01" 
-                           value="{{ product_details.price or '' }}" required>
-                </div>
-            </div>
-
-            <!-- Exclusions Input -->
-            <div class="form-group">
-                <label>Enter an exclusion from the above options:</label>
-                <div class="exclusion-options">
-                    <div class="custom-checkbox">
-                        <input type="checkbox" id="exclude_ebay" name="exclude_ebay"
-                               {% if product_details.exclude_ebay %}checked{% endif %}>
-                        <label for="exclude_ebay">
-                            Exclude from eBay
-                        </label>
-                    </div>
-                    <div class="custom-checkbox">
-                        <input type="checkbox" id="exclude_amazon" name="exclude_amazon"
-                               {% if product_details.exclude_amazon %}checked{% endif %}>
-                        <label for="exclude_amazon">
-                            Exclude from Amazon
-                        </label>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Stock in Store Checkbox -->
-            <div class="form-group">
-                <div class="custom-checkbox">
-                    <input type="checkbox" id="stock_in_store" name="stock_in_store"
-                           {% if product_details.stock_in_store %}checked{% endif %}>
-                    <label for="stock_in_store">
-                        Stock in Store?
-                    </label>
-                </div>
-            </div>
+        <div class="product-info">
+            <label for="product_name">Product Name:</label>
+            <input type="text" id="product_name" name="product_name" required
+                   value="{{ product_details.product_name if product_details else '' }}">
         </div>
-
-        <div class="form-actions">
-            <button type="button" class="btn btn-secondary" onclick="goBack()">Back</button>
-            <button type="submit" class="btn btn-primary">Continue to Review</button>
+        
+        <div class="price-input">
+            <label for="price">Price:</label>
+            <div class="price-field">
+                <span class="currency">£</span>
+                <input type="number" id="price" name="price" step="0.01" required autofocus
+                       value="{{ product_details.price if product_details else '' }}"
+                       onchange="document.getElementById('productForm').submit()">
+            </div>
         </div>
     </form>
 </div>
 
 <style>
-.content-section {
-    background: #2a2a2a;
+.container {
+    max-width: 600px;
+    margin: 20px auto;
     padding: 20px;
-    border-radius: 5px;
-    margin-top: 20px;
 }
 
-.product-info {
-    background: #333;
-    padding: 15px;
-    border-radius: 4px;
-    margin-bottom: 20px;
+.product-info, .price-input {
+    margin-bottom: 15px;
 }
 
-.product-info p {
-    color: #fff;
-    margin: 8px 0;
+label {
+    display: inline-block;
+    width: 120px;
+    font-weight: normal;
+    color: #333;
+}
+
+input[type="text"], input[type="number"] {
+    border: 1px solid #ccc;
+    padding: 5px 8px;
     font-size: 14px;
 }
 
-.form-section {
-    background: #333;
-    padding: 20px;
-    border-radius: 4px;
+input[type="text"] {
+    width: 300px;
 }
 
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-group label {
-    display: block;
-    color: #fff;
-    margin-bottom: 8px;
-    font-weight: 500;
-}
-
-.form-control {
-    background-color: #2a2a2a;
-    border: 1px solid #444;
-    color: #fff;
-    padding: 8px 12px;
-    border-radius: 4px;
-    width: 100%;
-}
-
-.form-control:focus {
-    background-color: #2a2a2a;
-    border-color: #666;
-    color: #fff;
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(255,255,255,0.1);
-}
-
-.input-group {
-    display: flex;
+.price-field {
+    display: inline-flex;
     align-items: center;
 }
 
-.input-group-text {
-    background-color: #444;
-    border: 1px solid #444;
-    color: #fff;
-    padding: 8px 12px;
-    border-radius: 4px 0 0 4px;
+.currency {
+    margin-right: 5px;
 }
 
-.input-group .form-control {
-    border-radius: 0 4px 4px 0;
-}
-
-.custom-checkbox {
-    display: flex;
-    align-items: center;
-    margin-bottom: 10px;
-}
-
-.custom-checkbox input[type="checkbox"] {
-    margin-right: 8px;
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-}
-
-.custom-checkbox label {
-    margin-bottom: 0;
-    cursor: pointer;
-}
-
-.exclusion-options {
-    display: flex;
-    gap: 20px;
-    margin-top: 8px;
-}
-
-.form-actions {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px solid #444;
-}
-
-.btn {
-    padding: 8px 20px;
-    border-radius: 4px;
-    font-weight: 500;
-    border: none;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.btn-primary {
-    background-color: #0d6efd;
-    color: #fff;
-}
-
-.btn-primary:hover {
-    background-color: #0b5ed7;
-}
-
-.btn-secondary {
-    background-color: #6c757d;
-    color: #fff;
-}
-
-.btn-secondary:hover {
-    background-color: #5c636a;
+input[type="number"] {
+    width: 100px;
 }
 </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Form validation
-    const form = document.getElementById('productDetailsForm');
-    form.addEventListener('submit', function(event) {
-        event.preventDefault();
-        
-        // Basic validation
-        const productName = document.getElementById('product_name').value;
-        const price = document.getElementById('price').value;
-        
-        if (!productName || !price) {
-            alert('Please fill in all required fields');
-            return;
-        }
-        
-        // If validation passes, submit the form
-        form.submit();
-    });
+document.getElementById('price').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        document.getElementById('productForm').submit();
+    }
 });
-
-function goBack() {
-    // Keep the session data but go back to variant selection
-    window.location.href = "{{ url_for('add_stock') }}";
-}
 </script>
 {% endblock %} 

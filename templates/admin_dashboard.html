@@ -1,117 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Sheerwater FC</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f0f0f0;
-        }
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        h1, h2 {
-            color: #333;
-            margin-bottom: 20px;
-        }
-        .user-list {
-            margin-top: 20px;
-        }
-        .user-item {
-            padding: 15px;
-            border: 1px solid #ddd;
-            margin-bottom: 10px;
-            border-radius: 4px;
-            background-color: #f9f9f9;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .user-info {
-            flex-grow: 1;
-        }
-        .user-actions {
-            display: flex;
-            gap: 10px;
-        }
-        .btn {
-            display: inline-block;
-            padding: 8px 16px;
-            background-color: #4CAF50;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            font-size: 14px;
-            border: none;
-            cursor: pointer;
-        }
-        .btn:hover {
-            background-color: #45a049;
-        }
-        .btn-warning {
-            background-color: #ff9800;
-        }
-        .btn-warning:hover {
-            background-color: #f57c00;
-        }
-        .btn-danger {
-            background-color: #f44336;
-        }
-        .btn-danger:hover {
-            background-color: #d32f2f;
-        }
-        .nav-links {
-            margin-bottom: 20px;
-        }
-        .flash-messages {
-            margin-bottom: 20px;
-        }
-        .flash-message {
-            padding: 10px;
-            background-color: #4CAF50;
-            color: white;
-            border-radius: 4px;
-            margin-bottom: 10px;
-        }
-        .status-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        .status-active {
-            background-color: #4CAF50;
-            color: white;
-        }
-        .status-inactive {
-            background-color: #f44336;
-            color: white;
-        }
-        .role-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            background-color: #2196F3;
-            color: white;
-            margin-left: 8px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Sowerbys Shoes{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- User Management Section -->
+    <div class="section">
         <div class="nav-links">
-            <a href="{{ url_for('home') }}" class="btn">Back to Home</a>
             <a href="{{ url_for('create_user') }}" class="btn">Create New User</a>
         </div>
 
@@ -155,5 +50,171 @@
             {% endfor %}
         </div>
     </div>
-</body>
-</html> 
+
+    <!-- Product Information Section -->
+    <div class="section mt-5">
+        <h2>Product Information</h2>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="info-card">
+                    <h3>Brand Information</h3>
+                    <div class="info-content">
+                        <p><strong>Total Brands:</strong> {{ brand_count }}</p>
+                        <p><strong>Active Brands:</strong> {{ active_brands }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="info-card">
+                    <h3>Price Information</h3>
+                    <div class="info-content">
+                        <p><strong>Average Price:</strong> £{{ avg_price }}</p>
+                        <p><strong>Price Range:</strong> £{{ min_price }} - £{{ max_price }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="info-card">
+                    <h3>Product Statistics</h3>
+                    <div class="info-content">
+                        <p><strong>Total Products:</strong> {{ total_products }}</p>
+                        <p><strong>Products in Stock:</strong> {{ in_stock_products }}</p>
+                        <p><strong>Out of Stock Products:</strong> {{ out_of_stock_products }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.container {
+    padding: 20px;
+}
+
+.section {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.user-list {
+    margin-top: 20px;
+}
+
+.user-item {
+    padding: 15px;
+    border: 1px solid #ddd;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.user-info {
+    flex-grow: 1;
+}
+
+.user-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-warning {
+    background-color: #ff9800;
+}
+
+.btn-warning:hover {
+    background-color: #f57c00;
+}
+
+.btn-danger {
+    background-color: #f44336;
+}
+
+.btn-danger:hover {
+    background-color: #d32f2f;
+}
+
+.flash-messages {
+    margin-bottom: 20px;
+}
+
+.flash-message {
+    padding: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.status-active {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.status-inactive {
+    background-color: #f44336;
+    color: white;
+}
+
+.role-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    background-color: #2196F3;
+    color: white;
+    margin-left: 8px;
+}
+
+.info-card {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    height: 100%;
+}
+
+.info-card h3 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+}
+
+.info-content {
+    color: #555;
+}
+
+.info-content p {
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+}
+
+.info-content strong {
+    color: #333;
+}
+
+.mt-5 {
+    margin-top: 3rem;
+}
+
+.mt-4 {
+    margin-top: 2rem;
+}
+</style>
+{% endblock %} 

@@ -89,6 +89,11 @@ class UKDStock:
                     brand_idx = headers.index('Brand')
                     name_idx = headers.index('Name')
                     stock_idx = headers.index('Stock')
+                    # Add color index
+                    color_idx = headers.index('Color') if 'Color' in headers else 3
+                    # Add price and VAT indices
+                    price_idx = headers.index('Price') if 'Price' in headers else 14
+                    vat_idx = headers.index('VAT') if 'VAT' in headers else 15
                     
                     print(f"Column indices:")
                     print(f"- EAN13: {ean13_idx}")
@@ -97,6 +102,9 @@ class UKDStock:
                     print(f"- Brand: {brand_idx}")
                     print(f"- Name: {name_idx}")
                     print(f"- Stock: {stock_idx}")
+                    print(f"- Color: {color_idx}")
+                    print(f"- Price: {price_idx}")
+                    print(f"- VAT: {vat_idx}")
                     
                 except ValueError as e:
                     print(f"Error finding columns: {str(e)}")
@@ -108,7 +116,7 @@ class UKDStock:
                 
                 for line_num, line in enumerate(lines[1:], 1):  # Skip header row
                     fields = line.strip().split(',')
-                    if len(fields) > max(ean13_idx, style_idx, size_idx, stock_idx):
+                    if len(fields) > max(ean13_idx, style_idx, size_idx, stock_idx, color_idx, price_idx, vat_idx):
                         # Clean up barcode - remove any whitespace and take only digits
                         raw_barcode = fields[ean13_idx].strip()
                         barcode = ''.join(c for c in raw_barcode if c.isdigit())
@@ -128,6 +136,29 @@ class UKDStock:
                                 
                             brand = fields[brand_idx].strip() if len(fields) > brand_idx else ''
                             name = fields[name_idx].strip() if len(fields) > name_idx else ''
+                            color = fields[color_idx].strip() if len(fields) > color_idx else ''
+                            
+                            # Get price and VAT
+                            try:
+                                # Get price
+                                price_raw = fields[price_idx].strip() if len(fields) > price_idx else '0'
+                                price_clean = price_raw.replace('£', '').replace(',', '').strip()
+                                price = float(price_clean) if price_clean else 0.0
+                                
+                                # Get VAT code and calculate VAT price
+                                vat_code = fields[vat_idx].strip().upper() if len(fields) > vat_idx else 'S'
+                                vat_rate = {
+                                    'S': 0.20,  # 20% Standard rate
+                                    'R': 0.05,  # 5% Reduced rate
+                                    'Z': 0.00   # 0% Zero rate
+                                }.get(vat_code, 0.20)  # Default to standard rate if unknown
+                                vat_price = price * (1 + vat_rate)
+                                
+                                price_str = f"{price:.2f}"
+                                vat_price_str = f"{vat_price:.2f}"
+                            except (ValueError, TypeError):
+                                price_str = "0.00"
+                                vat_price_str = "0.00"
                             
                             # Store stock information
                             sku = f"{style_no}-{size}"
@@ -137,7 +168,10 @@ class UKDStock:
                             if style_no not in self.ProductInfo:
                                 self.ProductInfo[style_no] = {
                                     'brand': brand,
-                                    'name': name
+                                    'name': name,
+                                    'color': color,
+                                    'tradePriceEx': price_str,
+                                    'tradePriceInc': vat_price_str
                                 }
                             
                             # Map barcode to product info
@@ -145,7 +179,11 @@ class UKDStock:
                                 'styleNo': style_no,
                                 'size': size,
                                 'brand': brand,
-                                'name': name
+                                'name': name,
+                                'color': color,
+                                'tradePriceEx': price_str,
+                                'tradePriceInc': vat_price_str,
+                                'ean13': barcode
                             }
                             barcode_count += 1
                             
@@ -167,6 +205,9 @@ class UKDStock:
                         print(f"- Size: {info['size']}")
                         print(f"- Brand: {info['brand']}")
                         print(f"- Name: {info['name']}")
+                        print(f"- Color: {info.get('color', 'N/A')}")
+                        print(f"- Price (ex VAT): £{info.get('tradePriceEx', '0.00')}")
+                        print(f"- Price (inc VAT): £{info.get('tradePriceInc', '0.00')}")
                         print("---")
                 
                 print("=== Data Load Complete ===\n")
@@ -207,7 +248,7 @@ class UKDStock:
             raise 
 
     def GetProductInfo(self, style_no):
-        """Description: Gets product information from UKD data file for a specific SKU"""
+        """Description: Gets product information from UKD data file for a specific style number"""
         try:
             data_file_path = os.path.join("files/UKDData.csv")
             
@@ -215,40 +256,82 @@ class UKDStock:
                 print(f"Data file not found at {data_file_path}")
                 raise FileNotFoundError(f"Data file not found at {data_file_path}")
             
-            # Get the base product code (without size) and insert space after letter prefix
-            base_code = style_no.split('-')[0] if '-' in style_no else style_no
-            # Insert space after the letter prefix (e.g., 'B430' -> 'B 430')
-            if len(base_code) > 1 and base_code[0].isalpha() and base_code[1].isdigit():
-                base_code = f"{base_code[0]} {base_code[1:]}"
+            # Clean up the style number
+            style_no = style_no.strip()
+            # Remove any spaces from the style number
+            style_no = style_no.replace(' ', '')
             
-            print(f"Looking up product info for SKU: {style_no} (formatted base code: {base_code})")
+            print(f"Looking up product info for style number: {style_no}")
+            
             with open(data_file_path, 'r', encoding='utf-8-sig') as File:
                 Reader = csv.reader(File)
                 header = next(Reader)  # Skip and store header row
                 print(f"CSV Headers: {header}")
                 
+                # Find column indices
+                try:
+                    style_col = header.index('StyleNo')
+                    brand_col = header.index('Brand')
+                    name_col = header.index('Name')
+                    upper_col = header.index('Upper')
+                    desc_col = header.index('Desc')
+                    sole_col = header.index('Sole')
+                    
+                    # Make sure we get the correct price column 
+                    price_col = header.index('Price') if 'Price' in header else 14
+                    vat_col = header.index('VAT') if 'VAT' in header else 15
+                    
+                    # Add color column index
+                    color_col = header.index('Color') if 'Color' in header else 3
+                    # Add EAN13 column index
+                    ean13_col = header.index('EAN13') if 'EAN13' in header else 17
+                    
+                    print(f"Column indices for key fields:")
+                    print(f"- StyleNo: {style_col}")
+                    print(f"- Price: {price_col}")
+                    print(f"- VAT: {vat_col}")
+                    print(f"- Color: {color_col}")
+                    print(f"- EAN13: {ean13_col}")
+                    
+                except ValueError as e:
+                    print(f"Error finding required column in UKDData.csv: {e}")
+                    raise ValueError(f"Missing required column in UKDData.csv: {e}")
+                
                 for Row in Reader:
-                    if len(Row) >= 16:  # UKDData.csv has at least 16 columns
-                        product_code = Row[0].strip()
-                        if product_code == base_code:
+                    if len(Row) > max(style_col, brand_col, name_col, upper_col, desc_col, sole_col, price_col, vat_col, color_col, ean13_col):
+                        # Clean up the product code from the row for comparison
+                        product_code = Row[style_col].strip().replace(' ', '')
+                        
+                        # Compare the cleaned codes
+                        if product_code.upper() == style_no.upper():
                             print(f"Found matching product code: {product_code}")
                             print(f"Full row data: {Row}")
                             
                             try:
-                                # Get the trade price from column 14
-                                trade_price_raw = Row[14].strip()
+                                # Get the trade price from the price column
+                                trade_price_raw = Row[price_col].strip() if len(Row) > price_col else '0'
                                 print(f"Raw trade price value: '{trade_price_raw}'")
                                 
                                 # Remove currency symbol and commas
                                 trade_price_clean = trade_price_raw.replace('£', '').replace(',', '').strip()
                                 print(f"Cleaned trade price value: '{trade_price_clean}'")
                                 
-                                # Convert to float
-                                trade_price = float(trade_price_clean) if trade_price_clean else 0.0
+                                # Convert to float, handle different formats
+                                try:
+                                    trade_price = float(trade_price_clean) if trade_price_clean else 0.0
+                                except ValueError:
+                                    # Try another format if the first one fails
+                                    print(f"Failed to convert price '{trade_price_clean}', trying alternative format")
+                                    trade_price_clean = ''.join(c for c in trade_price_clean if c.isdigit() or c == '.')
+                                    if '.' not in trade_price_clean and len(trade_price_clean) > 2:
+                                        # Add decimal point if missing (e.g., 1995 -> 19.95)
+                                        trade_price_clean = trade_price_clean[:-2] + '.' + trade_price_clean[-2:]
+                                    trade_price = float(trade_price_clean) if trade_price_clean else 0.0
+                                
                                 print(f"Converted trade price: {trade_price}")
                                 
-                                # Get VAT rate from column 15 and calculate VAT price
-                                vat_code = Row[15].strip().upper()
+                                # Get VAT rate from the VAT column
+                                vat_code = Row[vat_col].strip().upper() if len(Row) > vat_col else 'S'
                                 vat_rate = {
                                     'S': 0.20,  # 20% Standard rate
                                     'R': 0.05,  # 5% Reduced rate
@@ -259,22 +342,37 @@ class UKDStock:
                                 vat_price = trade_price * (1 + vat_rate)
                                 print(f"Calculated VAT inclusive price: {vat_price}")
                                 
+                                # Get color name and EAN13 barcode
+                                color_name = Row[color_col].strip() if len(Row) > color_col else ''
+                                ean13_code = Row[ean13_col].strip() if len(Row) > ean13_col else ''
+                                
+                                # Clean up EAN13 code (remove any non-digit characters)
+                                cleaned_ean13 = ''.join(c for c in ean13_code if c.isdigit())
+                                if cleaned_ean13:
+                                    ean13_code = cleaned_ean13
+                                
                             except (ValueError, TypeError) as e:
                                 print(f"Error converting prices: {e}")
                                 trade_price = 0.0
                                 vat_price = 0.0
+                                color_name = ''
+                                ean13_code = ''
                             
                             result = {
-                                'brand': Row[1].strip(),
-                                'name': Row[2].strip(),
-                                'description': Row[5].strip(),
+                                'brand': Row[brand_col].strip(),
+                                'name': Row[name_col].strip(),
+                                'upper': Row[upper_col].strip(),
+                                'description': Row[desc_col].strip(),
+                                'sole': Row[sole_col].strip(),
                                 'tradePriceEx': f"{trade_price:.2f}",
-                                'tradePriceInc': f"{vat_price:.2f}"
+                                'tradePriceInc': f"{vat_price:.2f}",
+                                'color': color_name,
+                                'ean13': ean13_code
                             }
                             print(f"Returning product info: {result}")
                             return result
             
-            print(f"No product information found for SKU: {style_no}")
+            print(f"No product information found for style number: {style_no}")
             return None
             
         except Exception as e:
@@ -299,6 +397,7 @@ class UKDStock:
             print(f"- Size: {result['size']}")
             print(f"- Brand: {result['brand']}")
             print(f"- Name: {result['name']}")
+            print(f"- Color: {result.get('color', 'N/A')}")
         else:
             print(f"No product found for barcode: {barcode}")
             print("Sample of available barcodes:")

@@ -364,4 +364,87 @@ class ShopifyResources:
                 
         except Exception as e:
             print(f"Error searching Shopify: {str(e)}")
-            return {'found': False, 'error': str(e)} 
+            return {'found': False, 'error': str(e)}
+
+    def AddProducts(self, Title, Description, Variants, Images, Vendor):
+        """Add a new product to Shopify with variants"""
+        # Escape quotes in strings to prevent JSON syntax errors
+        Title = Title.replace('"', '\\"')
+        Description = Description.replace('"', '\\"')
+        Vendor = Vendor.replace('"', '\\"')
+        
+        
+        print(Images + "im234523523")
+        mutation = f'''mutation productCreate {{
+          productCreate(input: {{
+            title: "{Title}",
+            descriptionHtml: "{Description}",
+            options: ["Color", "Size"],
+            variants: {Variants},
+            vendor: "{Vendor}",
+            tags: []
+          }}, media: {Images}) {{
+            product {{
+              id
+              title
+            }}
+            userErrors {{
+              field
+              message
+            }}
+          }}
+        }}'''
+
+        print("\nFull mutation:")
+        print(mutation)
+        print("=== End Mutation ===\n")
+
+        try:
+            response = requests.post(self.Url, data=mutation, headers=self.Headers, verify=False)
+            result = response.json()
+            
+            print("\n=== API Response ===")
+            print(json.dumps(result, indent=2))
+            print("=== End Response ===\n")
+            
+            if 'data' in result and 'productCreate' in result['data']:
+                product_data = result['data']['productCreate']
+                if 'userErrors' in product_data and product_data['userErrors']:
+                    print("Shopify API errors:", product_data['userErrors'])
+                    return None
+                    
+                if 'product' in product_data:
+                    product = product_data['product']
+                    product_id = product['id'].replace('gid://shopify/Product/', '')
+                    
+                    # Activate the product
+                    activate_mutation = f'''mutation publishablePublish {{
+                      publishablePublish(
+                        id: "gid://shopify/Product/{product_id}",
+                        input: [
+                          {{publicationId: "gid://shopify/Publication/26015563842"}},
+                          {{publicationId: "gid://shopify/Publication/83596017730"}}
+                        ]
+                      ) {{
+                        publishable {{
+                          availablePublicationCount
+                          publicationCount
+                        }}
+                        userErrors {{
+                          field
+                          message
+                        }}
+                      }}
+                    }}'''
+                    
+                    activate_response = requests.post(self.Url, data=activate_mutation, headers=self.Headers, verify=False)
+                    print("Activation response:", activate_response.json())
+                    
+                    return product
+            
+            print("Unexpected API response:", result)
+            return None
+            
+        except Exception as e:
+            print("Error in AddProducts:", str(e))
+            return None 
