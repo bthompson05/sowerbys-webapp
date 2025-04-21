@@ -1299,48 +1299,62 @@ def create_product():
             log_file.write(mutation)
             log_file.write("\n" + "-"*80 + "\n")
 
-        # Create product in Shopify
-        response = shopify.AddProducts(
-            Title=product_name,
-            Description=description_html, # Already formatted HTML
-            Variants=variants_list,       # Pass the JSON string
-            Images=images_list,     # Pass the JSON string
-            Vendor=product_info['brand']
-        )
+        try:
+            # Create product in Shopify
+            response = shopify.AddProducts(
+                Title=product_name,
+                Description=description_html, # Already formatted HTML
+                Variants=variants_list,       # Pass the JSON string
+                Images=images_list,     # Pass the JSON string
+                Vendor=product_info['brand']
+            )
 
-        if response:
-            # Extract product ID from the response
-            product_id = ""
-            if isinstance(response, dict) and 'id' in response:
-                # The ID might be in the format 'gid://shopify/Product/1234567890'
-                # Extract the numeric part at the end
-                full_id = response['id']
-                if 'gid://shopify/Product/' in full_id:
-                    product_id = full_id.replace('gid://shopify/Product/', '')
+            if response:
+                # Extract product ID from the response
+                product_id = ""
+                if isinstance(response, dict) and 'id' in response:
+                    # The ID might be in the format 'gid://shopify/Product/1234567890'
+                    # Extract the numeric part at the end
+                    full_id = response['id']
+                    if 'gid://shopify/Product/' in full_id:
+                        product_id = full_id.replace('gid://shopify/Product/', '')
+                    else:
+                        product_id = full_id
+                    product_url = f"https://admin.shopify.com/store/sowerbys/products/{product_id}"
                 else:
-                    product_id = full_id
-                product_url = f"https://admin.shopify.com/store/sowerbys/products/{product_id}"
+                    product_url = "https://admin.shopify.com/store/sowerbys/products"
+                    
+                return jsonify({
+                    'success': True,
+                    'message': 'Product created successfully',
+                    'productUrl': product_url,
+                    'productId': product_id,
+                    'openInNewTab': True,
+                    'shopifyMutation': mutation  # Include the full mutation in the response
+                })
             else:
-                product_url = "https://admin.shopify.com/store/sowerbys/products"
-                
+                return jsonify({
+                    'success': False,
+                    'message': 'Failed to create product in Shopify',
+                    'shopifyMutation': mutation  # Include the mutation even on failure for debugging
+                })
+        except Exception as e:
+            print(f"Error creating product: {str(e)}")
             return jsonify({
-                'success': True,
-                'message': 'Product created successfully',
-                'productUrl': product_url,
-                'productId': product_id,
-                'openInNewTab': True,
-                'shopifyMutation': mutation  # Include the full mutation in the response
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'message': 'Failed to create product in Shopify',
-                'shopifyMutation': mutation  # Include the mutation even on failure for debugging
+                'success': False, 
+                'message': f'Error creating product: {str(e)}',
+                'shopifyMutation': mutation  # Always include the mutation, even when an exception occurs
             })
 
     except Exception as e:
-        print(f"Error creating product: {str(e)}")
-        return jsonify({'success': False, 'message': f'Error creating product: {str(e)}'})
+        print(f"Error in create_product function: {str(e)}")
+        # If we have a mutation at this point, include it
+        mutation_to_return = mutation if 'mutation' in locals() else "Mutation not generated due to error"
+        return jsonify({
+            'success': False, 
+            'message': f'Error preparing product data: {str(e)}',
+            'shopifyMutation': mutation_to_return  # Include whatever mutation was generated, if any
+        })
 
 if __name__ == '__main__':
     app.run(debug=True, port=5004)

@@ -953,54 +953,58 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                // Show the Shopify mutation in a modal or new div
-                if (data.shopifyMutation) {
-                    // Create or show the mutation display container
-                    let mutationContainer = document.getElementById('shopifyMutationContainer');
-                    if (!mutationContainer) {
-                        mutationContainer = document.createElement('div');
-                        mutationContainer.id = 'shopifyMutationContainer';
-                        mutationContainer.style.position = 'fixed';
-                        mutationContainer.style.top = '50%';
-                        mutationContainer.style.left = '50%';
-                        mutationContainer.style.transform = 'translate(-50%, -50%)';
-                        mutationContainer.style.backgroundColor = 'white';
-                        mutationContainer.style.padding = '20px';
-                        mutationContainer.style.border = '2px solid #4CAF50';
-                        mutationContainer.style.borderRadius = '8px';
-                        mutationContainer.style.zIndex = '1000';
-                        mutationContainer.style.maxWidth = '90%';
-                        mutationContainer.style.maxHeight = '80vh';
-                        mutationContainer.style.overflow = 'auto';
-                        mutationContainer.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
-                        document.body.appendChild(mutationContainer);
-                    }
-                    
-                    // Add title and content
-                    mutationContainer.innerHTML = `
-                        <h3 style="margin-top: 0; color: #4CAF50;">Shopify API Mutation</h3>
-                        <pre style="background-color: #f8f9fa; padding: 10px; border-radius: 4px; overflow: auto; white-space: pre-wrap;">${data.shopifyMutation}</pre>
-                        <div style="display: flex; justify-content: space-between; margin-top: 15px;">
-                            <button id="copyMutation" style="background-color: #2196F3; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">Copy to Clipboard</button>
-                            <div style="display: flex; gap: 10px;">
-                                <button id="closeMutation" style="background-color: #f44336; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">Close</button>
-                                <button id="continueToProduct" style="background-color: #4CAF50; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">Continue to Product</button>
-                            </div>
+            // Always show the mutation if available, regardless of success status
+            if (data.shopifyMutation) {
+                // Create or show the mutation display container
+                let mutationContainer = document.getElementById('shopifyMutationContainer');
+                if (!mutationContainer) {
+                    mutationContainer = document.createElement('div');
+                    mutationContainer.id = 'shopifyMutationContainer';
+                    mutationContainer.style.position = 'fixed';
+                    mutationContainer.style.top = '50%';
+                    mutationContainer.style.left = '50%';
+                    mutationContainer.style.transform = 'translate(-50%, -50%)';
+                    mutationContainer.style.backgroundColor = 'white';
+                    mutationContainer.style.padding = '20px';
+                    mutationContainer.style.border = '2px solid ' + (data.success ? '#4CAF50' : '#f44336');
+                    mutationContainer.style.borderRadius = '8px';
+                    mutationContainer.style.zIndex = '1000';
+                    mutationContainer.style.maxWidth = '90%';
+                    mutationContainer.style.maxHeight = '80vh';
+                    mutationContainer.style.overflow = 'auto';
+                    mutationContainer.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+                    document.body.appendChild(mutationContainer);
+                } else {
+                    mutationContainer.style.display = 'block';
+                    mutationContainer.style.border = '2px solid ' + (data.success ? '#4CAF50' : '#f44336');
+                }
+                
+                // Add title and content
+                mutationContainer.innerHTML = `
+                    <h3 style="margin-top: 0; color: ${data.success ? '#4CAF50' : '#f44336'};">Shopify API Mutation ${data.success ? 'Success' : 'Error'}</h3>
+                    ${!data.success ? `<p style="color: #f44336; font-weight: bold;">Error: ${data.message || 'Unknown error'}</p>` : ''}
+                    <pre style="background-color: #f8f9fa; padding: 10px; border-radius: 4px; overflow: auto; white-space: pre-wrap;">${data.shopifyMutation}</pre>
+                    <div style="display: flex; justify-content: space-between; margin-top: 15px;">
+                        <button id="copyMutation" style="background-color: #2196F3; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">Copy to Clipboard</button>
+                        <div style="display: flex; gap: 10px;">
+                            <button id="closeMutation" style="background-color: #f44336; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">Close</button>
+                            ${data.success ? `<button id="continueToProduct" style="background-color: #4CAF50; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">Continue to Product</button>` : ''}
                         </div>
-                    `;
-                    
-                    // Add event listeners
-                    document.getElementById('copyMutation').addEventListener('click', function() {
-                        navigator.clipboard.writeText(data.shopifyMutation).then(function() {
-                            alert('Mutation copied to clipboard!');
-                        });
+                    </div>
+                `;
+                
+                // Add event listeners
+                document.getElementById('copyMutation').addEventListener('click', function() {
+                    navigator.clipboard.writeText(data.shopifyMutation).then(function() {
+                        alert('Mutation copied to clipboard!');
                     });
-                    
-                    document.getElementById('closeMutation').addEventListener('click', function() {
-                        mutationContainer.style.display = 'none';
-                    });
-                    
+                });
+                
+                document.getElementById('closeMutation').addEventListener('click', function() {
+                    mutationContainer.style.display = 'none';
+                });
+                
+                if (data.success && document.getElementById('continueToProduct')) {
                     document.getElementById('continueToProduct').addEventListener('click', function() {
                         mutationContainer.style.display = 'none';
                         if (data.productUrl) {
@@ -1013,8 +1017,11 @@ document.addEventListener('DOMContentLoaded', function() {
                             window.location.href = '/inventory';
                         }
                     });
-                } else {
-                    // No mutation to display, proceed as normal
+                }
+            } else {
+                // No mutation to display, show simple success/error message
+                if (data.success) {
+                    alert('Product created successfully!');
                     if (data.productUrl) {
                         if (data.openInNewTab) {
                             window.open(data.productUrl, '_blank');
@@ -1024,12 +1031,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         window.location.href = '/inventory';
                     }
-                }
-            } else {
-                // Show error message and mutation if available
-                if (data.shopifyMutation) {
-                    alert(`Error: ${data.message}\n\nCheck the console for the full Shopify mutation`);
-                    console.error('Shopify Mutation that caused the error:', data.shopifyMutation);
                 } else {
                     alert(data.message || 'Error creating product');
                 }
@@ -1037,7 +1038,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Error creating product');
+            alert('Error creating product: ' + error);
         });
     });
 
