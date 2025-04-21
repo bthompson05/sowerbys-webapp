@@ -1196,15 +1196,10 @@ def create_product():
                 # Clean up barcode - ensure it only contains digits
                 barcode = ''.join(c for c in barcode if c.isdigit())
                 
-                # Format variant - include barcode if available
-                if barcode and len(barcode) >= 8:
-                    variant = '''{options: ["%s", "%s"], sku: "%s", barcode: "%s", price: %s, inventoryItem: {tracked: true, cost: 0}, inventoryPolicy: DENY, inventoryQuantities: [{locationId: "%s", availableQuantity: %s}]}''' % (
-                        color_name.strip(), size_data['size'].strip(), size_data['sku'].strip(), barcode, price,
-                        shopify.UKD_LocationID, stock_quantity)
-                else:
-                    variant = '''{options: ["%s", "%s"], sku: "%s", price: %s, inventoryItem: {tracked: true, cost: 0}, inventoryPolicy: DENY, inventoryQuantities: [{locationId: "%s", availableQuantity: %s}]}''' % (
-                        color_name.strip(), size_data['size'].strip(), size_data['sku'].strip(), price,
-                        shopify.UKD_LocationID, stock_quantity)
+                # Format variant - always include barcode field regardless of its content
+                variant = '''{options: ["%s", "%s"], sku: "%s", barcode: "%s", price: %s, inventoryItem: {tracked: true, cost: 0}, inventoryPolicy: DENY, inventoryQuantities: [{locationId: "%s", availableQuantity: %s}]}''' % (
+                    color_name.strip(), size_data['size'].strip(), size_data['sku'].strip(), barcode, price,
+                    shopify.UKD_LocationID, stock_quantity)
                 
                 variants_list += variant + ","
         
@@ -1216,31 +1211,93 @@ def create_product():
         # Generate image list if available
         images_list = "["
         all_image_urls = set() # Use a set to avoid duplicate URLs
+        
+        # Debug the structure of variants_data to see what's available
+        print("\n=== DEBUGGING VARIANTS DATA STRUCTURE ===")
+        for color_code in all_color_codes:
+            if color_code in variants_data:
+                print(f"Color {color_code} data keys: {variants_data[color_code].keys()}")
+                # Check if the image_url key exists and what its value is
+                if 'image_url' in variants_data[color_code]:
+                    print(f"  image_url type: {type(variants_data[color_code]['image_url'])}")
+                    print(f"  image_url value: {variants_data[color_code]['image_url']}")
+                else:
+                    print(f"  No image_url key found for color {color_code}")
+        
+        # Log all image URLs for debugging
+        print("\n=== Image URLs in Data ===")
+        for color_code in all_color_codes:
+            if color_code in variants_data and variants_data[color_code].get('image_url'):
+                print(f"Color {color_code} has {len(variants_data[color_code]['image_url'])} images:")
+                for img_url in variants_data[color_code]['image_url']:
+                    print(f" - {img_url}")
+
         # Ensure we use the collected color codes to find images
         for color_code in all_color_codes:
             if color_code in variants_data and variants_data[color_code].get('image_url'):
                 for image_url in variants_data[color_code]['image_url']:
-                    if image_url not in all_image_urls:
-                         # Convert local cached paths to direct UKD URLs that Shopify can access
-                         shopify_accessible_url = ""
-                         if '/static/cache/products/' in image_url:
-                             # Extract the filename from the path
-                             filename = image_url.split('/')[-1]
-                             # Remove .jpg extension if present
-                             base_name = filename.replace('.jpg', '')
-                             # Convert to UKD URL format
-                             shopify_accessible_url = f"https://www.ukdistributors.co.uk/photos/840/{base_name}.jpg"
+                    if image_url and image_url not in all_image_urls:
+                         # Check if image URL is relative or absolute
+                         # If it's a relative path starting with /static/, convert to absolute URL
+                         # If it's already an absolute URL (starts with http), use as is
+                         if image_url.startswith('/static/'):
+                             # Use the absolute path with the domain for Shopify
+                             base_url = request.host_url.rstrip('/')
+                             full_url = f"{base_url}{image_url}"
+                             print(f"Image URL for Shopify (converted from relative): {full_url}")
+                         elif image_url.startswith('http'):
+                             # Already a full URL
+                             full_url = image_url
+                             print(f"Image URL for Shopify (already absolute): {full_url}")
                          else:
-                             # If it's already a full URL, use it as is
-                             shopify_accessible_url = image_url
+                             # Unknown format, try to use as is
+                             full_url = image_url
+                             print(f"Image URL for Shopify (unknown format): {full_url}")
                          
-                         print(f"Image URL for Shopify: {shopify_accessible_url}")
-                         images_list = images_list + (('''{mediaContentType:IMAGE,originalSource:"%s"}''' % (shopify_accessible_url.strip(),)) + ',')
+                         # Add to the media list for Shopify
+                         images_list = images_list + (('''{mediaContentType:IMAGE,originalSource:"%s"}''' % (full_url.strip(),)) + ',')
                          all_image_urls.add(image_url)
+        
         # Remove trailing comma and close bracket
         if images_list.endswith(","):
             images_list = images_list[:-1]
         images_list += "]"
+        
+        print(f"\n=== Final images_list ===\n{images_list}\n")
+
+        # Construct the full GraphQL mutation for logging and display
+        mutation = f'''mutation productCreate {{
+          productCreate(input: {{
+            title: "{product_name}",
+            descriptionHtml: "{description_html}",
+            options: ["Color", "Size"],
+            variants: {variants_list},
+            vendor: "{product_info['brand']}",
+            tags: []
+          }}, media: {images_list}) {{
+            product {{
+              id
+              title
+            }}
+            userErrors {{
+              field
+              message
+            }}
+          }}
+        }}'''
+
+        # Log the mutation for debugging
+        print("\n=== SHOPIFY API MUTATION ===")
+        print(mutation)
+        print("=== END MUTATION ===\n")
+        
+        # Log to file
+        log_file_path = os.path.join(LOGS_DIR, 'shopify_mutations.log')
+        with open(log_file_path, 'a') as log_file:
+            timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+            log_file.write(f"\n[{timestamp}] MUTATION FOR PRODUCT: {product_name}\n")
+            log_file.write(mutation)
+            log_file.write("\n" + "-"*80 + "\n")
 
         # Create product in Shopify
         response = shopify.AddProducts(
@@ -1271,12 +1328,14 @@ def create_product():
                 'message': 'Product created successfully',
                 'productUrl': product_url,
                 'productId': product_id,
-                'openInNewTab': True
+                'openInNewTab': True,
+                'shopifyMutation': mutation  # Include the full mutation in the response
             })
         else:
             return jsonify({
                 'success': False,
-                'message': 'Failed to create product in Shopify'
+                'message': 'Failed to create product in Shopify',
+                'shopifyMutation': mutation  # Include the mutation even on failure for debugging
             })
 
     except Exception as e:

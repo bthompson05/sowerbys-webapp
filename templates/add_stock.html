@@ -834,7 +834,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Get image URLs from the color card
                 const colorCard = checkbox.closest('.variant-card');
                 const images = colorCard.querySelectorAll('.gallery-image');
-                selectedVariants[colorCode].image_url = Array.from(images).map(img => img.src);
+                
+                // Fix image URLs to be properly formatted
+                // Store the complete URLs including the domain, not just relative paths
+                selectedVariants[colorCode].image_url = Array.from(images).map(img => {
+                    // Get the current src attribute, which may be a relative path
+                    const src = img.src;
+                    // Return the absolute URL (src already contains full path when read from DOM)
+                    console.log(`Image for ${colorCode}: ${src}`);
+                    return src;
+                });
             }
             
             // Find the variant data in the original variants data
@@ -945,20 +954,85 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Product created successfully
-                console.log("Product created successfully:", data);
-                
-                if (data.productUrl) {
-                    if (data.openInNewTab) {
-                        window.open(data.productUrl, '_blank');
-                    } else {
-                        window.location.href = data.productUrl;
+                // Show the Shopify mutation in a modal or new div
+                if (data.shopifyMutation) {
+                    // Create or show the mutation display container
+                    let mutationContainer = document.getElementById('shopifyMutationContainer');
+                    if (!mutationContainer) {
+                        mutationContainer = document.createElement('div');
+                        mutationContainer.id = 'shopifyMutationContainer';
+                        mutationContainer.style.position = 'fixed';
+                        mutationContainer.style.top = '50%';
+                        mutationContainer.style.left = '50%';
+                        mutationContainer.style.transform = 'translate(-50%, -50%)';
+                        mutationContainer.style.backgroundColor = 'white';
+                        mutationContainer.style.padding = '20px';
+                        mutationContainer.style.border = '2px solid #4CAF50';
+                        mutationContainer.style.borderRadius = '8px';
+                        mutationContainer.style.zIndex = '1000';
+                        mutationContainer.style.maxWidth = '90%';
+                        mutationContainer.style.maxHeight = '80vh';
+                        mutationContainer.style.overflow = 'auto';
+                        mutationContainer.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+                        document.body.appendChild(mutationContainer);
                     }
+                    
+                    // Add title and content
+                    mutationContainer.innerHTML = `
+                        <h3 style="margin-top: 0; color: #4CAF50;">Shopify API Mutation</h3>
+                        <pre style="background-color: #f8f9fa; padding: 10px; border-radius: 4px; overflow: auto; white-space: pre-wrap;">${data.shopifyMutation}</pre>
+                        <div style="display: flex; justify-content: space-between; margin-top: 15px;">
+                            <button id="copyMutation" style="background-color: #2196F3; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">Copy to Clipboard</button>
+                            <div style="display: flex; gap: 10px;">
+                                <button id="closeMutation" style="background-color: #f44336; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">Close</button>
+                                <button id="continueToProduct" style="background-color: #4CAF50; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">Continue to Product</button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Add event listeners
+                    document.getElementById('copyMutation').addEventListener('click', function() {
+                        navigator.clipboard.writeText(data.shopifyMutation).then(function() {
+                            alert('Mutation copied to clipboard!');
+                        });
+                    });
+                    
+                    document.getElementById('closeMutation').addEventListener('click', function() {
+                        mutationContainer.style.display = 'none';
+                    });
+                    
+                    document.getElementById('continueToProduct').addEventListener('click', function() {
+                        mutationContainer.style.display = 'none';
+                        if (data.productUrl) {
+                            if (data.openInNewTab) {
+                                window.open(data.productUrl, '_blank');
+                            } else {
+                                window.location.href = data.productUrl;
+                            }
+                        } else {
+                            window.location.href = '/inventory';
+                        }
+                    });
                 } else {
-                    window.location.href = '/inventory';
+                    // No mutation to display, proceed as normal
+                    if (data.productUrl) {
+                        if (data.openInNewTab) {
+                            window.open(data.productUrl, '_blank');
+                        } else {
+                            window.location.href = data.productUrl;
+                        }
+                    } else {
+                        window.location.href = '/inventory';
+                    }
                 }
             } else {
-                alert(data.message || 'Error creating product');
+                // Show error message and mutation if available
+                if (data.shopifyMutation) {
+                    alert(`Error: ${data.message}\n\nCheck the console for the full Shopify mutation`);
+                    console.error('Shopify Mutation that caused the error:', data.shopifyMutation);
+                } else {
+                    alert(data.message || 'Error creating product');
+                }
             }
         })
         .catch(error => {

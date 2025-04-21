@@ -373,8 +373,18 @@ class ShopifyResources:
         Description = Description.replace('"', '\\"')
         Vendor = Vendor.replace('"', '\\"')
         
+        # Better debugging for image issues
+        print("\n=== DEBUGGING IMAGES PARAMETER ===")
+        print(f"Images parameter type: {type(Images)}")
+        print(f"Images parameter value: {Images}")
+        print(f"Images parameter length: {len(Images) if isinstance(Images, str) else 'N/A'}")
         
-        print(Images + "im234523523")
+        # Force proper format if Images is empty or malformed
+        if not Images or Images == "[]" or "mediaContentType" not in Images:
+            print("Warning: No valid images provided for product or images parameter is empty")
+            # If we need to add a test image for debugging:
+            # Images = '''[{mediaContentType:IMAGE,originalSource:"https://example.com/test.jpg"}]'''
+        
         mutation = f'''mutation productCreate {{
           productCreate(input: {{
             title: "{Title}",
