@@ -4,25 +4,27 @@ import wget
 import webbrowser
 import requests
 import json
+import urllib3
 
 from .UKD import UKDStock as UKD
 
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
-url = 'https://sowerbys.myshopify.com/admin/api/2024-01/graphql.json'
+url = 'https://sowerbys.myshopify.com/admin/api/2024-04/graphql.json'
 headers = {"Content-Type": "application/graphql",
-           "X-Shopify-Access-Token": "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"}
+           "X-Shopify-Access-Token": "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"}
 UKDLocationID = "gid://shopify/Location/61867622466"
 ShopLocationID = "gid://shopify/Location/17633640514"
 
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class ShopifyResources:
 
     def __init__(self):
-        self.Url = 'https://sowerbys.myshopify.com/admin/api/2023-07/graphql.json'
+        self.Url = 'https://sowerbys.myshopify.com/admin/api/2024-04/graphql.json'
         self.Headers = {"Content-Type": "application/graphql",
-                        "X-Shopify-Access-Token": "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"}
+                        "X-Shopify-Access-Token": "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"}
         self.UKD_LocationID = "gid://shopify/Location/61867622466"
         self.ShopLocationID = "gid://shopify/Location/17633640514"
         self.OnlineStorePublicationID = "gid://shopify/Publication/26015563842"
@@ -45,6 +47,7 @@ class ShopifyResources:
                                           sku
                                           inventoryItem {
                                             id  #this is the inventory_item_id
+                                            archivedAt
                                           }
                                         }
                                       }
@@ -66,16 +69,43 @@ class ShopifyResources:
                               }
                             }'''
 
+        # Start the bulk operation, retrying on errors and logging responses
         Received = False
-        while not Received:
+        retry_count = 0
+        max_retries = 10
+        while not Received and retry_count < max_retries:
             try:
                 Request = requests.post(self.Url, data=CreateBulkQuery, headers=self.Headers, verify=False)
-                Json = json.loads(Request.text)
-                OperationID = Json['data']['bulkOperationRunQuery']['bulkOperation']['id']
-
+                if Request.status_code != 200:
+                    print(f"*** Error: bulkOperationRunQuery HTTP {Request.status_code}: {Request.text}")
+                    retry_count += 1
+                    time.sleep(10)
+                    continue
+                Json = Request.json()
+                if 'errors' in Json:
+                    print(f"*** GraphQL errors: {Json['errors']}")
+                    retry_count += 1
+                    time.sleep(10)
+                    continue
+                # Safely extract OperationID
+                data = Json.get('data', {})
+                bulkOp = data.get('bulkOperationRunQuery', {})
+                op = bulkOp.get('bulkOperation', {})
+                OperationID = op.get('id')
+                if not OperationID:
+                    print(f"*** No OperationID in response; full payload: {Json}")
+                    retry_count += 1
+                    time.sleep(10)
+                    continue
+                print(f"Started bulkOperation with ID: {OperationID}")
                 Received = True
             except Exception as Error:
-                print("*** Error occurred.", Error)
+                print("*** Exception during bulkOperationRunQuery:", Error)
+                retry_count += 1
+                time.sleep(10)
+        if not Received:
+            print("*** Failed to start bulk operation after maximum retries.")
+            return
 
         FetchURLQuery = '''query {
                           node(id: "%s") {
@@ -91,21 +121,41 @@ class ShopifyResources:
                           }
                         }''' % (OperationID)
 
-        time.sleep(75)
-        Received = False
-        while not Received:
+        # Poll for completion status, up to a max number of retries
+        retry_count = 0
+        max_retries = 30
+        URL = None
+        while retry_count < max_retries:
             try:
-                Request = requests.post(self.Url, data=FetchURLQuery, headers=self.Headers, verify=False)
-                Json = json.loads(Request.text)
-                URL = Json['data']['node']['url']
-                print('URL:', URL)
-                Received = True
+                resp = requests.post(self.Url, data=FetchURLQuery, headers=self.Headers, verify=False)
+                if resp.status_code != 200:
+                    print(f"*** Error: FetchURLQuery HTTP {resp.status_code}")
+                else:
+                    Json = resp.json()
+                    if 'errors' in Json:
+                        print("*** GraphQL errors:", Json['errors'])
+                    else:
+                        node = Json.get('data', {}).get('node', {})
+                        status = node.get('status')
+                        print(f"Bulk operation status: {status}")
+                        if status == 'COMPLETED':
+                            URL = node.get('url')
+                            break
+                retry_count += 1
+                time.sleep(10)
             except Exception as Error:
-                print("*** Error occurred.", Error)
+                print("*** Exception during FetchURLQuery:", Error)
+                retry_count += 1
+                time.sleep(10)
+        if not URL:
+            print(f"*** Bulk operation did not complete in time after {max_retries} retries.")
+            return
 
         if os.path.exists(os.path.join("files/ShopifyStock.jsonl")):  # if stock file already downloaded and in directory
             os.remove(os.path.join("files/ShopifyStock.jsonl"))  # remove file from directory
+        print(f"Starting download of JSONL from {URL}")
         wget.download(URL, os.path.join("files/ShopifyStock.jsonl"))
+        print("Download complete.")
 
         self.ProcessJsonl()
 
@@ -366,8 +416,24 @@ class ShopifyResources:
             print(f"Error searching Shopify: {str(e)}")
             return {'found': False, 'error': str(e)}
 
+    def get_all_publication_ids(self):
+        """Fetch all publication IDs (sales channels) from Shopify."""
+        query = '''{\n  publications(first: 20) {\n    edges {\n      node {\n        id\n        name\n      }\n    }\n  }\n}'''
+        try:
+            response = requests.post(self.Url, data=query, headers=self.Headers, verify=False)
+            result = response.json()
+            if 'data' in result and 'publications' in result['data']:
+                publications = result['data']['publications']['edges']
+                return [(pub['node']['id'], pub['node']['name']) for pub in publications]
+            else:
+                print("Could not fetch publications:", result)
+                return []
+        except Exception as e:
+            print(f"Error fetching publications: {e}")
+            return []
+
     def AddProducts(self, Title, Description, Variants, Images, Vendor):
-        """Add a new product to Shopify with variants"""
+        """Add a new product to Shopify with variants and publish to all sales channels (manually encoded)."""
         # Escape quotes in strings to prevent JSON syntax errors
         Title = Title.replace('"', '\\"')
         Description = Description.replace('"', '\\"')
@@ -422,36 +488,37 @@ class ShopifyResources:
                 if 'userErrors' in product_data and product_data['userErrors']:
                     print("Shopify API errors:", product_data['userErrors'])
                     return None
-                    
                 if 'product' in product_data:
                     product = product_data['product']
                     product_id = product['id'].replace('gid://shopify/Product/', '')
-                    
-                    # Activate the product
+                    # Manually encode all publication IDs
+                    publication_ids = [
+                        "gid://shopify/Publication/26015563842",  # Online Store
+                        "gid://shopify/Publication/26015629378",  # Point of Sale
+                        "gid://shopify/Publication/44297191490",  # Facebook & Instagram
+                        "gid://shopify/Publication/44409159746",  # Click & Drop
+                        "gid://shopify/Publication/83573309506",  # Shop
+                        "gid://shopify/Publication/83596017730",  # Google & YouTube
+                        "gid://shopify/Publication/83757826114",  # Shopify GraphiQL App
+                    ]
+                    input_str = ',\n'.join([f'{{publicationId: \"{pub_id}\"}}' for pub_id in publication_ids])
                     activate_mutation = f'''mutation publishablePublish {{
                       publishablePublish(
                         id: "gid://shopify/Product/{product_id}",
                         input: [
-                          {{publicationId: "gid://shopify/Publication/26015563842"}},
-                          {{publicationId: "gid://shopify/Publication/83596017730"}}
+                          {input_str}
                         ]
                       ) {{
-                        publishable {{
-                          availablePublicationCount
-                          publicationCount
-                        }}
                         userErrors {{
                           field
                           message
                         }}
                       }}
                     }}'''
-                    
+                    print("Trying to activate product...")
                     activate_response = requests.post(self.Url, data=activate_mutation, headers=self.Headers, verify=False)
                     print("Activation response:", activate_response.json())
-                    
                     return product
-            
             print("Unexpected API response:", result)
             return None
             
