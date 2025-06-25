@@ -437,7 +437,8 @@ class ShopifyResources:
         # Escape quotes in strings to prevent JSON syntax errors
         Title = Title.replace('"', '\\"')
         Description = Description.replace('"', '\\"')
-        Vendor = Vendor.replace('"', '\\"')
+        # Capitalize each word in vendor
+        Vendor = Vendor.title().replace('"', '\\"')
         
         # Better debugging for image issues
         print("\n=== DEBUGGING IMAGES PARAMETER ===")
@@ -502,22 +503,9 @@ class ShopifyResources:
                         "gid://shopify/Publication/83757826114",  # Shopify GraphiQL App
                     ]
                     input_str = ',\n'.join([f'{{publicationId: \"{pub_id}\"}}' for pub_id in publication_ids])
-                    activate_mutation = f'''mutation publishablePublish {{
-                      publishablePublish(
-                        id: "gid://shopify/Product/{product_id}",
-                        input: [
-                          {input_str}
-                        ]
-                      ) {{
-                        userErrors {{
-                          field
-                          message
-                        }}
-                      }}
-                    }}'''
-                    print("Trying to activate product...")
-                    activate_response = requests.post(self.Url, data=activate_mutation, headers=self.Headers, verify=False)
-                    print("Activation response:", activate_response.json())
+                    activate_mutation = f'''mutation publishablePublish {{\n  publishablePublish(\n    id: \"gid://shopify/Product/{product_id}\",\n    input: [\n      {input_str}\n    ]\n  ) {{\n    userErrors {{\n      field\n      message\n    }}\n  }}\n}}'''
+                    requests.post(self.Url, data=activate_mutation, headers=self.Headers, verify=False)
+                    # Do not open the product page here; let the frontend handle it
                     return product
             print("Unexpected API response:", result)
             return None

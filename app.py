@@ -1340,27 +1340,23 @@ def create_product():
                     product_url = f"https://admin.shopify.com/store/sowerbys/products/{product_id}"
                 else:
                     product_url = "https://admin.shopify.com/store/sowerbys/products"
-                    
                 return jsonify({
                     'success': True,
                     'message': 'Product created successfully',
                     'productUrl': product_url,
                     'productId': product_id,
-                    'openInNewTab': True,
-                    'shopifyMutation': mutation  # Include the full mutation in the response
+                    'openInNewTab': True
                 })
             else:
                 return jsonify({
                     'success': False,
-                    'message': 'Failed to create product in Shopify',
-                    'shopifyMutation': mutation  # Include the mutation even on failure for debugging
+                    'message': 'Failed to create product in Shopify'
                 })
         except Exception as e:
             print(f"Error creating product: {str(e)}")
             return jsonify({
                 'success': False, 
-                'message': f'Error creating product: {str(e)}',
-                'shopifyMutation': mutation  # Always include the mutation, even when an exception occurs
+                'message': f'Error creating product: {str(e)}'
             })
 
     except Exception as e:
