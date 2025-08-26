@@ -13,7 +13,7 @@ ssl._create_default_https_context = ssl._create_unverified_context
 
 url = 'https://sowerbys.myshopify.com/admin/api/2024-04/graphql.json'
 headers = {"Content-Type": "application/graphql",
-           "X-Shopify-Access-Token": "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"}
+           "X-Shopify-Access-Token": "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"}
 UKDLocationID = "gid://shopify/Location/61867622466"
 ShopLocationID = "gid://shopify/Location/17633640514"
 
