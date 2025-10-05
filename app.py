@@ -1179,6 +1179,22 @@ def create_product():
         # Escape quotes for JSON safety within GraphQL
         description_html = description_html.replace('"', '\\"')
 
+        colors = set()
+        sizes = set()
+        for dicts in variants_data.values():
+            colors.add(dicts['color'])
+            for size in dicts['sizes']:
+                sizes.add(size['size'])
+
+        def set_to_graphql_option(name, values):
+            values_str = ", ".join([f'{{ name: "{v}" }}' for v in sorted(values)])
+            return f"""{{name: "{name}", values: [{values_str}]}}"""
+
+        options_list = f"""[
+        {set_to_graphql_option("Color", colors)},
+        {set_to_graphql_option("Size", sizes)}
+        ]"""
+
         # Prepare a mapping of color codes to image URLs for use in variants
         color_to_image = {}
         all_color_codes = set()
@@ -1201,9 +1217,8 @@ def create_product():
                     else:
                         # Unknown format, try to use as is
                         color_to_image[color_code] = image_url
-        
-        # Format variants for Shopify - now including mediaSrc for each variant
-        variants_list = "["
+                # Format variants for Shopify - now including mediaSrc for each variant
+        variants_list = []
         for color_code, color_data in variants_data.items():
             all_color_codes.add(color_code) # Collect unique color codes
             # Get the image URL for this color, if available
@@ -1212,29 +1227,58 @@ def create_product():
             for size_data in color_data['sizes']:
                 # Get actual stock quantity from size_data, or default to 0 if not available
                 stock_quantity = size_data.get('stock', 0)
-                
-                # Get the color name
                 color_name = color_data.get('color', color_code)
-                
-                # Get barcode (EAN13) from variant data
                 barcode = size_data.get('ean13', '')
-                # Clean up barcode - ensure it only contains digits
                 barcode = ''.join(c for c in barcode if c.isdigit())
                 
                 # Format variant - include mediaSrc if available
                 if media_src:
-                    variant = '''{mediaSrc: "%s", options: ["%s", "%s"], sku: "%s", barcode: "%s", price: %s, inventoryItem: {tracked: true, cost: 0}, inventoryPolicy: DENY, inventoryQuantities: [{locationId: "%s", availableQuantity: %s}]}''' % (
-                        media_src, color_name.strip(), size_data['size'].strip(), size_data['sku'].strip(), barcode, price,
-                        shopify.UKD_LocationID, stock_quantity)
+                    variant = {
+                        "optionValues": [
+                            {"optionName": "Color", "name": color_name.strip()},
+                            {"optionName": "Size", "name": size_data["size"].strip()}
+                        ],
+                        "barcode": barcode,
+                        "price": str(price),  # Shopify GraphQL expects strings for price
+                        "inventoryPolicy": "DENY",
+                        "inventoryItem": {
+                            "tracked": True,
+                            "sku": size_data["sku"].strip(),
+                            "cost": 0
+                        },
+                        "imageUrl": media_src,
+                        "inventoryQuantities": [
+                            {
+                                "locationId": "gid://shopify/Location/61867622466",
+                                "availableQuantity": stock_quantity
+                            }
+                        ]
+                    }
+
+
                 else:
-                    variant = '''{options: ["%s", "%s"], sku: "%s", barcode: "%s", price: %s, inventoryItem: {tracked: true, cost: 0}, inventoryPolicy: DENY, inventoryQuantities: [{locationId: "%s", availableQuantity: %s}]}''' % (
-                        color_name.strip(), size_data['size'].strip(), size_data['sku'].strip(), barcode, price,
-                        shopify.UKD_LocationID, stock_quantity)
-                
-                variants_list += variant
-        
-        # Close bracket
-        variants_list += "]"
+                    variant = {
+                        "optionValues": [
+                            {"optionName": "Color", "name": color_name.strip()},
+                            {"optionName": "Size", "name": size_data["size"].strip()}
+                        ],
+                        "barcode": barcode,
+                        "price": str(price),  # Shopify GraphQL expects strings for price
+                        "inventoryPolicy": "DENY",
+                        "inventoryItem": {
+                            "tracked": True,
+                            "sku": size_data["sku"].strip(),
+                            "cost": 0
+                        },
+                        "inventoryQuantities": [
+                            {
+                                "locationId": "gid://shopify/Location/61867622466",
+                                "availableQuantity": stock_quantity
+                            }
+                        ]
+                    }
+
+                variants_list.append(variant)
 
         # Generate image list for the media array
         images_list = "["
@@ -1279,42 +1323,6 @@ def create_product():
             images_list = images_list[:-1]
         images_list += "]"
         
-        print(f"\n=== Final variants_list ===\n{variants_list}\n")
-        print(f"\n=== Final images_list ===\n{images_list}\n")
-
-        # Construct the full GraphQL mutation for logging and display
-        mutation = f'''mutation productCreate {{
-          productCreate(input: {{
-            title: "{product_name}",
-            descriptionHtml: "{description_html}",
-            options: ["Color", "Size"],
-            variants: {variants_list},
-            vendor: "{product_info['brand']}",
-            tags: []
-          }}, media: {images_list}) {{
-            product {{
-              id
-              title
-            }}
-            userErrors {{
-              field
-              message
-            }}
-          }}
-        }}'''
-
-        # Log the mutation for debugging
-        print("\n=== SHOPIFY API MUTATION ===")
-        print(mutation)
-        print("=== END MUTATION ===\n")
-        
-        # Log to file
-        log_file_path = os.path.join(LOGS_DIR, 'shopify_mutations.log')
-        with open(log_file_path, 'a') as log_file:
-            timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-            log_file.write(f"\n[{timestamp}] MUTATION FOR PRODUCT: {product_name}\n")
-            log_file.write(mutation)
-            log_file.write("\n" + "-"*80 + "\n")
 
         try:
             # Create product in Shopify
@@ -1322,8 +1330,10 @@ def create_product():
                 Title=product_name,
                 Description=description_html, # Already formatted HTML
                 Variants=variants_list,       # Pass the JSON string
+                Options=options_list,         # Pass the JSON string
                 Images=images_list,     # Pass the JSON string
-                Vendor=product_info['brand']
+                Vendor=product_info['brand'],
+                AllImages=all_image_urls
             )
 
             if response:

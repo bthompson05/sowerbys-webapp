@@ -5,15 +5,16 @@ import webbrowser
 import requests
 import json
 import urllib3
+import pandas as pd
 
 from .UKD import UKDStock as UKD
 
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
-url = 'https://sowerbys.myshopify.com/admin/api/2024-04/graphql.json'
+url = 'https://sowerbys.myshopify.com/admin/api/2025-07/graphql.json'
 headers = {"Content-Type": "application/graphql",
-           "X-Shopify-Access-Token": "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"}
+           "X-Shopify-Access-Token": "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"}
 UKDLocationID = "gid://shopify/Location/61867622466"
 ShopLocationID = "gid://shopify/Location/17633640514"
 
@@ -22,9 +23,9 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 class ShopifyResources:
 
     def __init__(self):
-        self.Url = 'https://sowerbys.myshopify.com/admin/api/2024-04/graphql.json'
-        self.Headers = {"Content-Type": "application/graphql",
-                        "X-Shopify-Access-Token": "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"}
+        self.Url = 'https://sowerbys.myshopify.com/admin/api/2025-07/graphql.json'
+        self.Headers = {"Content-Type": "application/json",
+                        "X-Shopify-Access-Token": "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"}
         self.UKD_LocationID = "gid://shopify/Location/61867622466"
         self.ShopLocationID = "gid://shopify/Location/17633640514"
         self.OnlineStorePublicationID = "gid://shopify/Publication/26015563842"
@@ -432,7 +433,7 @@ class ShopifyResources:
             print(f"Error fetching publications: {e}")
             return []
 
-    def AddProducts(self, Title, Description, Variants, Images, Vendor):
+    def AddProducts(self, Title, Description, Options, Variants, Images, Vendor, AllImages):
         """Add a new product to Shopify with variants and publish to all sales channels (manually encoded)."""
         # Escape quotes in strings to prevent JSON syntax errors
         Title = Title.replace('"', '\\"')
@@ -456,14 +457,19 @@ class ShopifyResources:
           productCreate(input: {{
             title: "{Title}",
             descriptionHtml: "{Description}",
-            options: ["Color", "Size"],
-            variants: {Variants},
             vendor: "{Vendor}",
-            tags: []
           }}, media: {Images}) {{
             product {{
               id
-              title
+              media(first:50) {{
+                edges {{
+                  node {{
+                    ... on MediaImage {{
+                      id
+                    }}
+                  }}
+                }}
+              }}
             }}
             userErrors {{
               field
@@ -477,39 +483,178 @@ class ShopifyResources:
         print("=== End Mutation ===\n")
 
         try:
-            response = requests.post(self.Url, data=mutation, headers=self.Headers, verify=False)
+            payload = {"query": mutation}
+            response = requests.post(self.Url, headers=self.Headers, json=payload)
             result = response.json()
             
             print("\n=== API Response ===")
             print(json.dumps(result, indent=2))
             print("=== End Response ===\n")
+
+            product_id = result['data']['productCreate']['product']['id']
             
-            if 'data' in result and 'productCreate' in result['data']:
-                product_data = result['data']['productCreate']
-                if 'userErrors' in product_data and product_data['userErrors']:
-                    print("Shopify API errors:", product_data['userErrors'])
-                    return None
-                if 'product' in product_data:
-                    product = product_data['product']
-                    product_id = product['id'].replace('gid://shopify/Product/', '')
-                    # Manually encode all publication IDs
-                    publication_ids = [
-                        "gid://shopify/Publication/26015563842",  # Online Store
-                        "gid://shopify/Publication/26015629378",  # Point of Sale
-                        "gid://shopify/Publication/44297191490",  # Facebook & Instagram
-                        "gid://shopify/Publication/44409159746",  # Click & Drop
-                        "gid://shopify/Publication/83573309506",  # Shop
-                        "gid://shopify/Publication/83596017730",  # Google & YouTube
-                        "gid://shopify/Publication/83757826114",  # Shopify GraphiQL App
-                    ]
-                    input_str = ',\n'.join([f'{{publicationId: \"{pub_id}\"}}' for pub_id in publication_ids])
-                    activate_mutation = f'''mutation publishablePublish {{\n  publishablePublish(\n    id: \"gid://shopify/Product/{product_id}\",\n    input: [\n      {input_str}\n    ]\n  ) {{\n    userErrors {{\n      field\n      message\n    }}\n  }}\n}}'''
-                    requests.post(self.Url, data=activate_mutation, headers=self.Headers, verify=False)
-                    # Do not open the product page here; let the frontend handle it
-                    return product
-            print("Unexpected API response:", result)
-            return None
             
         except Exception as e:
             print("Error in AddProducts:", str(e))
             return None 
+
+        nodes = result["data"]["productCreate"]["product"]["media"]["edges"]
+        images = []
+        for node in nodes:
+            images.append(node['node']['id'])
+
+        mappings = dict(zip(AllImages, images))
+
+        add_options_mutation = f'''mutation {{
+          productOptionsCreate(
+            productId: "{product_id}",
+            options: {Options}
+            variantStrategy: CREATE
+          ) {{
+            product {{
+                id
+                variants(first:50) {{
+                    edges {{
+                        node {{
+                            id
+                            selectedOptions {{
+                              name
+                              value
+                            }}
+                        }}
+                    }}
+                }}
+            }}
+            userErrors {{
+              field
+              message
+              code
+            }}
+          }}
+        }}'''
+
+        print("\nFull add_options_mutation:")
+        print(add_options_mutation)
+        print("=== End add_options_mutation ===\n")
+
+        try:
+            payload = {"query": add_options_mutation}
+            response = requests.post(self.Url, headers=self.Headers, json=payload)
+            result = response.json()
+            print(result)
+
+        except Exception as e:
+            print("Error in AddOptions:", str(e))
+            return None
+
+        # Extract edges
+        print("before extraction")
+        edges = result["data"]["productOptionsCreate"]["product"]["variants"]["edges"]
+
+        # Build list of dicts
+        records = []
+        for edge in edges:
+            node = edge["node"]
+            variant_id = node["id"]
+            options = {opt["name"].lower(): opt["value"] for opt in node["selectedOptions"]}
+            records.append({
+                "id": variant_id,
+                "color": options.get("color"),
+                "size": options.get("size")
+            })
+
+        # Convert to DataFrame
+        df = pd.DataFrame(records)
+        print("after extraction")
+
+        def build_bulk_update_query(product_id: str, df: pd.DataFrame, variants_data: list) -> str:
+            """
+            Build a Shopify bulk variant update GraphQL mutation.
+
+            Args:
+                product_id (str): Shopify product GID.
+                df (pd.DataFrame): DataFrame with columns ['color', 'size', 'id'].
+                variants_data (list): List of dicts with keys matching Shopify variant fields.
+
+            Returns:
+                str: GraphQL mutation string.
+            """
+            print(type(variants_data))
+            print(variants_data)
+            variant_blocks = []
+            print("inside function")
+
+            for v in variants_data:  # v is already a dict
+                color = next(o["name"] for o in v["optionValues"] if o["optionName"] == "Color")
+                size = next(o["name"] for o in v["optionValues"] if o["optionName"] == "Size")
+
+                # lookup id from DataFrame
+                match = df[(df["color"] == color) & (df["size"] == size)]
+                if match.empty:
+                    print(f"⚠️ No match for {color} {size}, skipping...")
+                    continue
+
+                variant_id = match.iloc[0]["id"]
+
+                block = f'''
+                {{
+                  id: "{variant_id}"
+                  price: "{v["price"]}"
+                  barcode: "{v["barcode"]}"
+                  mediaId: "{AllImages[(v['imageUrl'])]}"
+                  inventoryPolicy: {v["inventoryPolicy"]}
+                  inventoryItem: {{
+                    tracked: {str(v["inventoryItem"]["tracked"]).lower()}
+                    sku: "{v["inventoryItem"]["sku"]}"
+                    cost: {v["inventoryItem"]["cost"]}
+                  }}
+                }}'''
+                variant_blocks.append(block)
+
+            print("outside loop")
+            variants_str = ",\n".join(variant_blocks)
+
+            print("BUILDING UPDATE QUERY")
+            query = f'''
+            mutation {{
+              productVariantsBulkUpdate(
+                productId: "{product_id}"
+                variants: [{variants_str}]
+              ) {{
+                product {{
+                  id
+                  title
+                  variants(first: 20) {{
+                    edges {{
+                      node {{
+                        id
+                        sku
+                        price
+                      }}
+                    }}
+                  }}
+                }}
+                userErrors {{
+                  field
+                  message
+                }}
+              }}
+            }}
+            '''
+            return query
+
+        # Example usage
+        query = build_bulk_update_query(product_id, df, Variants)
+
+        print("\nFull add_variants_mutation:")
+        print(query)
+        print("=== End add_variants_mutation ===\n")
+        try:
+            payload = {"query": query}
+            response = requests.post(self.Url, headers=self.Headers, json=payload)
+            result = response.json()
+            print(result)
+          
+        except Exception as e:
+            print("Error in AddVariants:", str(e))
+            return None

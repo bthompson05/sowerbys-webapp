@@ -2,6 +2,7 @@ import csv
 import os
 import wget
 import logging
+import time
 
 UKDStockFileLink = 'https://www.ukdistributors.co.uk/downloads/xStockFile2.csv'
 UKDDataFileLink = 'https://www.ukdistributors.co.uk/downloads/xStockFile6.csv'
@@ -32,20 +33,34 @@ class UKDStock:
             # Download stock file
             stock_path = os.path.join("files/UKDStock.csv")
             if os.path.exists(stock_path):
-                print(f"Removing existing stock file: {stock_path}")
-                os.remove(stock_path)
-            print("Downloading UKD stock file...")
-            wget.download(UKDStockFileLink, stock_path)
-            print("\nUKD stock file downloaded successfully")
+                file_age = time.time() - os.path.getmtime(stock_path)
+                week_in_seconds = 7 * 24 * 60 * 60  # 7 days in seconds
+                if file_age > week_in_seconds:
+                    print(f"Removing old stock file (age: {file_age/86400:.1f} days): {stock_path}")
+                    os.remove(stock_path)
+                    print("Downloading UKD stock file...")
+                    wget.download(UKDStockFileLink, stock_path)
+                    print("\nUKD stock file downloaded successfully")
+                else:
+                    print(f"Using existing stock file (age: {file_age/86400:.1f} days): {stock_path}")
+                    return  # Skip download if file is less than a week old
+            
 
             # Download data file
             data_path = os.path.join("files/UKDData.csv")
             if os.path.exists(data_path):
-                print(f"Removing existing data file: {data_path}")
-                os.remove(data_path)
-            print("Downloading UKD data file...")
-            wget.download(UKDDataFileLink, data_path)
-            print("\nUKD data file downloaded successfully")
+                file_age = time.time() - os.path.getmtime(data_path)
+                week_in_seconds = 7 * 24 * 60 * 60  # 7 days in seconds
+                if file_age > week_in_seconds:
+                    print(f"Removing old data file (age: {file_age/86400:.1f} days): {data_path}")
+                    os.remove(data_path)
+                    print("Downloading UKD data file...")
+                    wget.download(UKDDataFileLink, data_path)
+                    print("\nUKD data file downloaded successfully")
+                else:
+                    print(f"Using existing data file (age: {file_age/86400:.1f} days): {data_path}")
+                    return  # Skip download if file is less than a week old
+
             
             # Verify files exist and show sizes
             if os.path.exists(stock_path):
