@@ -596,12 +596,18 @@ class ShopifyResources:
 
                 variant_id = match.iloc[0]["id"]
 
+                # Use mappings dict for image lookup instead of AllImages (which may be a set)
+                media_id = mappings.get(v['imageUrl']) if 'mappings' in locals() else None
+                if not media_id:
+                    print(f"⚠️ No mediaId for imageUrl {v['imageUrl']}, skipping...")
+                    continue
+
                 block = f'''
                 {{
                   id: "{variant_id}"
                   price: "{v["price"]}"
                   barcode: "{v["barcode"]}"
-                  mediaId: "{AllImages[(v['imageUrl'])]}"
+                  mediaId: "{media_id}"
                   inventoryPolicy: {v["inventoryPolicy"]}
                   inventoryItem: {{
                     tracked: {str(v["inventoryItem"]["tracked"]).lower()}
