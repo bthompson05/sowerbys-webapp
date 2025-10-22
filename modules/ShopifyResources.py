@@ -13,7 +13,7 @@ import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
 url = 'https://sowerbys.myshopify.com/admin/api/2025-07/graphql.json'
-headers = {"Content-Type": "application/graphql",
+headers = {"Content-Type": "application/json",
            "X-Shopify-Access-Token": "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"}
 UKDLocationID = "gid://shopify/Location/61867622466"
 ShopLocationID = "gid://shopify/Location/17633640514"
@@ -48,7 +48,6 @@ class ShopifyResources:
                                           sku
                                           inventoryItem {
                                             id  #this is the inventory_item_id
-                                            archivedAt
                                           }
                                         }
                                       }
@@ -76,7 +75,7 @@ class ShopifyResources:
         max_retries = 10
         while not Received and retry_count < max_retries:
             try:
-                Request = requests.post(self.Url, data=CreateBulkQuery, headers=self.Headers, verify=False)
+                Request = requests.post(self.Url, data=json.dumps({"query": CreateBulkQuery}), headers=self.Headers)
                 if Request.status_code != 200:
                     print(f"*** Error: bulkOperationRunQuery HTTP {Request.status_code}: {Request.text}")
                     retry_count += 1
@@ -128,7 +127,7 @@ class ShopifyResources:
         URL = None
         while retry_count < max_retries:
             try:
-                resp = requests.post(self.Url, data=FetchURLQuery, headers=self.Headers, verify=False)
+                resp = requests.post(self.Url, data=json.dumps({"query": FetchURLQuery}), headers=self.Headers)
                 if resp.status_code != 200:
                     print(f"*** Error: FetchURLQuery HTTP {resp.status_code}")
                 else:
