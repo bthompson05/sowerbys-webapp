@@ -187,20 +187,20 @@ def admin_required(f):
     def decorated_function(*args, **kwargs):
         if 'logged_in' not in session or not session.get('is_admin', False):
             flash('Admin access required')
-            return redirect(url_for('home'))
+            return redirect(url_for('add_stock'))
         return f(*args, **kwargs)
     return decorated_function
 
 @app.route('/')
 def index():
     if 'logged_in' in session:
-        return redirect(url_for('store_stock'))
+        return redirect(url_for('add_stock'))
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if 'logged_in' in session:
-        return redirect(url_for('home'))
+        return redirect(url_for('add_stock'))
         
     if request.method == 'POST':
         email = request.form.get('email')
@@ -212,7 +212,7 @@ def login():
             session['email'] = email
             session['name'] = USERS[email]['name']
             session['is_admin'] = USERS[email]['is_admin']
-            return redirect(url_for('home'))
+            return redirect(url_for('add_stock'))
         else:
             return render_template('login.html', error='Invalid credentials or account inactive')
     
@@ -223,14 +223,6 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-@app.route('/home')
-@login_required
-def home():
-    name = session.get('name', 'User')
-    email = session.get('email', 'No email set')
-    is_admin = session.get('is_admin', False)
-    user = USERS.get(email, {})
-    return render_template('home.html', name=name, email=email, is_admin=is_admin, user=user)
 
 @app.route('/admin/create_user', methods=['GET', 'POST'])
 @login_required
@@ -968,34 +960,6 @@ def get_product_info():
         print(f"Error in get-product-info: {str(e)}")
         return jsonify({'success': False, 'message': str(e)})
 
-def log_shopify_command(command_type, data):
-    """Log Shopify API commands to a file"""
-    try:
-        timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
-        log_file = os.path.join(LOGS_DIR, 'shopify_commands.log')
-        with open(log_file, 'a') as f:
-            f.write(f"\n[{timestamp}] {command_type}\n")
-            f.write(json.dumps(data, indent=2))
-            f.write("\n" + "-"*50 + "\n")
-    except Exception as e:
-        print(f"Error logging Shopify command: {e}")
-
-@app.route('/post-to-shopify', methods=['POST'])
-@login_required
-def post_to_shopify():
-    # This function is now deprecated and redirects to the create-product endpoint
-    try:
-        data = request.get_json()
-        return jsonify({
-            'success': False,
-            'message': 'This endpoint is deprecated. Please use /create-product instead.'
-        })
-    except Exception as e:
-        print(f"Error in deprecated post_to_shopify: {str(e)}")
-        return jsonify({
-            'success': False,
-            'message': f'Error: {str(e)}'
-        })
 
 @app.route('/shopify-variant', methods=['POST'])
 @login_required
@@ -1042,95 +1006,6 @@ def get_shopify_variant():
         
     except Exception as e:
         print(f"Error in get_shopify_variant: {str(e)}")
-        return jsonify({
-            'success': False,
-            'message': str(e)
-        })
-
-@app.route('/check-unfulfilled-orders', methods=['POST'])
-@login_required
-def check_unfulfilled_orders():
-    try:
-        data = request.get_json()
-        sku = data.get('sku')
-        
-        if not sku:
-            return jsonify({
-                'success': False,
-                'message': 'No SKU provided'
-            })
-            
-        # GraphQL query to get unfulfilled orders containing the SKU
-        query = '''
-        query getUnfulfilledOrders {
-          orders(first: 50, query: "fulfillment_status:unfulfilled") {
-            edges {
-              node {
-                id
-                name
-                createdAt
-                lineItems(first: 50) {
-                  edges {
-                    node {
-                      sku
-                      quantity
-                      title
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-        '''
-        
-        # Initialize ShopifyResources
-        shopify = ShopifyResources()
-        
-        # Execute GraphQL query
-        try:
-            response = requests.post(
-                shopify.Url,
-                headers=shopify.Headers,
-                data=query,
-                verify=False
-            )
-            result = response.json()
-            
-            if 'data' not in result or 'orders' not in result['data']:
-                return jsonify({
-                    'success': False,
-                    'message': 'Failed to fetch orders from Shopify'
-                })
-            
-            # Filter orders that contain the SKU
-            matching_orders = []
-            for edge in result['data']['orders']['edges']:
-                order = edge['node']
-                for item_edge in order['lineItems']['edges']:
-                    item = item_edge['node']
-                    if item['sku'] == sku:
-                        matching_orders.append({
-                            'order_number': order['name'],
-                            'created_at': order['createdAt'],
-                            'quantity': item['quantity'],
-                            'product_title': item['title']
-                        })
-            
-            return jsonify({
-                'success': True,
-                'orders': matching_orders
-            })
-            
-        except Exception as e:
-            print(f"Error querying Shopify: {str(e)}")
-            return jsonify({
-                'success': False,
-                'message': f'Error querying Shopify: {str(e)}'
-            })
-            
-    except Exception as e:
-        print(f"Error in check_unfulfilled_orders: {str(e)}")
         return jsonify({
             'success': False,
             'message': str(e)
@@ -1185,15 +1060,23 @@ def create_product():
             colors.add(dicts['color'])
             for size in dicts['sizes']:
                 sizes.add(size['size'])
-
+        
+        # Convert sizes to a sorted list for numerical ordering
+        sizes_list = sorted(sizes, key=lambda x: float(x) if x.replace('.', '').isdigit() else float('inf'))
+        print('sizes_list', sizes_list)
         def set_to_graphql_option(name, values):
-            values_str = ", ".join([f'{{ name: "{v}" }}' for v in sorted(values)])
+            # Don't sort if values are already sorted (like sizes_list)
+            if isinstance(values, list):
+                values_str = ", ".join([f'{{ name: "{v}" }}' for v in values])
+            else:
+                values_str = ", ".join([f'{{ name: "{v}" }}' for v in sorted(values)])
             return f"""{{name: "{name}", values: [{values_str}]}}"""
 
         options_list = f"""[
         {set_to_graphql_option("Color", colors)},
-        {set_to_graphql_option("Size", sizes)}
+        {set_to_graphql_option("Size", sizes_list)}
         ]"""
+        print('options_list', options_list)
 
         # Prepare a mapping of color codes to image URLs for use in variants
         color_to_image = {}

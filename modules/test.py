@@ -1,43 +1,73 @@
-
-
 import requests
 import json
 
-url = 'https://sowerbys.myshopify.com/admin/api/2025-07/graphql.json'
-headers = {
-    "Content-Type": "application/json",   # must be application/json
-    "X-Shopify-Access-Token": "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"
+# === Configuration ===
+SHOPIFY_SHOP = "sowerbys.myshopify.com"
+ACCESS_TOKEN = "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"  # your private app token
+
+# === GraphQL endpoint ===
+url = f"https://{SHOPIFY_SHOP}/admin/api/2025-01/graphql.json"
+
+# === Define the mutation ===
+mutation = '''mutation {
+                              bulkOperationRunQuery(
+                               query: """
+                                {
+                                  products {
+                                    edges {
+                                      node {
+                                        id
+                                        variants(first: 250)
+                                    {
+                                      edges {
+                                        node {
+                                          sku
+                                          inventoryItem {
+                                            id  #this is the inventory_item_id
+                                          }
+                                        }
+                                      }
+                                    }
+                                      }
+                                    }
+                                  }
+                                }
+                                """
+                              ) {
+                                bulkOperation {
+                                  id
+                                  status
+                                }
+                                userErrors {
+                                  field
+                                  message
+                                }
+                              }
+                            }'''
+
+# === Build variables ===
+variables = {
+    "query": mutation,
+    "groupObjects": False
 }
 
-query = """
-mutation productCreate {
-          productCreate(input: {
-            title: "MATILDA",
-            descriptionHtml: "<ul><li>Floral Embroidered Textile upper</li><li>V Cut Touch Fastening Slipper</li><li>Vulcanised Rubber Sole sole</li></ul><p>Don't forget, we pay the postage! Shipped from our family run store in Stourbridge.</p>",
-            vendor: "Sleepers",
-          }, media: [{mediaContentType:IMAGE,originalSource:"http://127.0.0.1:5000/static/cache/products/LS182F.jpg"},{mediaContentType:IMAGE,originalSource:"http://127.0.0.1:5000/static/cache/products/LS182F2.jpg"},{mediaContentType:IMAGE,originalSource:"http://127.0.0.1:5000/static/cache/products/LS182NC.jpg"},{mediaContentType:IMAGE,originalSource:"http://127.0.0.1:5000/static/cache/products/LS182NC2.jpg"}]) {
-            product {
-              id
-              media(first=50) {
-                edges {
-                  node {
-                    ... on MediaImage {
-                      id
-                    }
-                  }
-                }
-              }
-            }
-            userErrors {
-              field
-              message
-            }
-          }
-        }
-"""
+# === Send request ===
+headers = {
+    "Content-Type": "application/json",
+    "X-Shopify-Access-Token": ACCESS_TOKEN
+}
 
-payload = {"query": query}
+payload = {
+    "query": mutation,
+    "variables": variables
+}
 
-response = requests.post(url, headers=headers, json=payload)  # use json= instead of data=
-print(response.status_code)
-print(response.json())
+response = requests.post(url, headers=headers, data=json.dumps(payload))
+
+# === Handle response ===
+if response.status_code == 200:
+    data = response.json()
+    print(json.dumps(data, indent=2))
+else:
+    print(f"Request failed: {response.status_code}")
+    print(response.text)

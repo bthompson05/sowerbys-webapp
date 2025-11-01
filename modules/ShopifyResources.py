@@ -312,18 +312,12 @@ class ShopifyResources:
     def ShopifyStock(self, InventoryID, LocationID, Quantity):
         update_query = '''mutation {
                   inventorySetOnHandQuantities(input: {
-                    # The reason for adjusting the on-hand inventory quantity.
                     reason: "correction",
-                    # A freeform URI that represents why the inventory change happened. This can be the entity adjusting inventory quantities or the Shopify resource that's associated with the inventory adjustment. For example, a unit in a draft order might have been previously reserved, and a merchant later creates an order from the draft order. In this case, the referenceDocumentUri for the order ID.
                     referenceDocumentUri: "gid://shopify/Order/1974482927638",
-                    # The input that's required to set the on-hand inventory quantity.
                     setQuantities: [
                       {
-                        # The ID of the inventory item.
                         inventoryItemId: "%s",
-                        # The ID of the location where the inventory is stocked.
                         locationId: "%s",
-                        # The quantity of on-hand inventory to set.
                         quantity: %s
                       }
                     ]
@@ -338,7 +332,7 @@ class ShopifyResources:
                       }
                       reason
                       referenceDocumentUri
-                    },
+                    }
                     userErrors {
                       message
                       code
@@ -346,13 +340,16 @@ class ShopifyResources:
                     }
                   }
                 }''' % (InventoryID, LocationID, Quantity)
+        
         Received = False
         while not Received:
             try:
-                Update = requests.post(url, data=update_query, headers=headers, verify=False)
+                payload = {"query": update_query}
+                Update = requests.post(self.Url, headers=self.Headers, json=payload)
+                result = Update.json()
                 Received = True
             except Exception as Error:
-                print("**** Error occured.", Error)
+                print("**** Error occurred in ShopifyStock:", Error)
 
     def ChangeStock(self, SKU, Location, Change):
         InventoryID = self.GetInventoryID(SKU)
@@ -520,6 +517,9 @@ class ShopifyResources:
                               name
                               value
                             }}
+                            inventoryItem {{
+                              id
+                            }}
                         }}
                     }}
                 }}
@@ -550,14 +550,25 @@ class ShopifyResources:
         print("before extraction")
         edges = result["data"]["productOptionsCreate"]["product"]["variants"]["edges"]
 
-        # Build list of dicts
+        # Build list of dicts and extract inventoryItem IDs for ShopifyStock calls
         records = []
+        inventory_items = []  # Store inventoryItem data for stock updates
+        
         for edge in edges:
             node = edge["node"]
             variant_id = node["id"]
+            inventory_item_id = node["inventoryItem"]["id"]
             options = {opt["name"].lower(): opt["value"] for opt in node["selectedOptions"]}
+            
             records.append({
                 "id": variant_id,
+                "color": options.get("color"),
+                "size": options.get("size")
+            })
+            
+            # Store inventory item data for later stock updates
+            inventory_items.append({
+                "inventoryItemId": inventory_item_id,
                 "color": options.get("color"),
                 "size": options.get("size")
             })
@@ -663,3 +674,106 @@ class ShopifyResources:
         except Exception as e:
             print("Error in AddVariants:", str(e))
             return None
+
+        # Activate all inventory items at once using bulk toggle activation
+        print("Activating all inventory items at UKD location...")
+        ukd_location = "gid://shopify/Location/61867622466"  # UKD location ID
+        
+        # Collect all inventory item IDs
+        inventory_item_ids = [item["inventoryItemId"] for item in inventory_items]
+        
+        if inventory_item_ids:
+            # Create inventoryBulkToggleActivation mutation using the correct format with variables
+            bulk_activate_mutation = '''mutation inventoryBulkToggleActivation($inventoryItemId: ID!, $inventoryItemUpdates: [InventoryBulkToggleActivationInput!]!) {
+              inventoryBulkToggleActivation(inventoryItemId: $inventoryItemId, inventoryItemUpdates: $inventoryItemUpdates) {
+                inventoryItem {
+                  id
+                }
+                inventoryLevels {
+                  id
+                  quantities(names: ["available"]) {
+                    name
+                    quantity
+                  }
+                  location {
+                    id
+                  }
+                }
+                userErrors {
+                  field
+                  message
+                  code
+                }
+              }
+            }'''
+            
+            print("Bulk activation mutation:")
+            print(bulk_activate_mutation)
+            print("=== End bulk activation mutation ===\n")
+            
+            # Process each inventory item individually since the mutation expects one inventoryItemId at a time
+            for inventory_item_id in inventory_item_ids:
+                variables = {
+                    "inventoryItemId": inventory_item_id,
+                    "inventoryItemUpdates": [
+                        {
+                            "locationId": ukd_location,
+                            "activate": True
+                        }
+                    ]
+                }
+                
+                print(f"Activating inventory item: {inventory_item_id}")
+                print(f"Variables: {variables}")
+                
+                try:
+                    payload = {
+                        "query": bulk_activate_mutation,
+                        "variables": variables
+                    }
+                    response = requests.post(self.Url, headers=self.Headers, json=payload)
+                    result = response.json()
+                    
+                    if "errors" in result:
+                        print(f"Error in bulk activation for {inventory_item_id}: {result['errors']}")
+                    else:
+                        print(f"Inventory item {inventory_item_id} activated successfully")
+                        if result.get('data', {}).get('inventoryBulkToggleActivation', {}).get('userErrors'):
+                            print(f"User errors: {result['data']['inventoryBulkToggleActivation']['userErrors']}")
+                        
+                except Exception as e:
+                    print(f"Error activating inventory item {inventory_item_id}: {str(e)}")
+                    continue
+        
+        # Now set individual stock levels using ShopifyStock
+        print("Setting individual stock levels...")
+        
+        for inventory_item in inventory_items:
+            # Find matching variant in Variants data to get stock quantity
+            matching_variant = None
+            for variant in Variants:
+                color = next((o["name"] for o in variant["optionValues"] if o["optionName"] == "Color"), None)
+                size = next((o["name"] for o in variant["optionValues"] if o["optionName"] == "Size"), None)
+                
+                if (color == inventory_item["color"] and 
+                    size == inventory_item["size"]):
+                    matching_variant = variant
+                    break
+            
+            if matching_variant and "inventoryQuantities" in matching_variant:
+                stock_quantity = matching_variant["inventoryQuantities"][0]["availableQuantity"]
+                print(f"Setting stock for {inventory_item['color']} {inventory_item['size']}: {stock_quantity}")
+                
+                try:
+                    self.ShopifyStock(
+                        inventory_item["inventoryItemId"], 
+                        ukd_location, 
+                        stock_quantity
+                    )
+                    print(f"Stock updated successfully for {inventory_item['color']} {inventory_item['size']}")
+                except Exception as e:
+                    print(f"Error updating stock for {inventory_item['color']} {inventory_item['size']}: {str(e)}")
+            else:
+                print(f"No matching variant found for {inventory_item['color']} {inventory_item['size']}")
+        
+        print("Stock update process completed.")

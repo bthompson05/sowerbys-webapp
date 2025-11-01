@@ -226,18 +226,6 @@
                 <i class="fab fa-shopify"></i>
                 Shopify Stock
             </a>
-            <a href="{{ url_for('store_stock') }}" class="nav-link {% if request.endpoint == 'store_stock' %}active{% endif %}">
-                <i class="fas fa-store"></i>
-                Store Stock
-            </a>
-            <a href="{{ url_for('sale_book') }}" class="nav-link {% if request.endpoint == 'sale_book' %}active{% endif %}">
-                <i class="fas fa-book"></i>
-                Sale Book
-            </a>
-            <a href="{{ url_for('fulfill_orders') }}" class="nav-link {% if request.endpoint == 'fulfill_orders' %}active{% endif %}">
-                <i class="fas fa-check"></i>
-                Fulfill Orders
-            </a>
             <a href="{{ url_for('admin_dashboard') }}" class="nav-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
                 <i class="fas fa-cog"></i>
                 Admin
