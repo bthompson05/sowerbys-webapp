@@ -14,7 +14,7 @@ ssl._create_default_https_context = ssl._create_unverified_context
 
 url = 'https://sowerbys.myshopify.com/admin/api/2025-07/graphql.json'
 headers = {"Content-Type": "application/json",
-           "X-Shopify-Access-Token": "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"}
+           "X-Shopify-Access-Token": "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"}
 UKDLocationID = "gid://shopify/Location/61867622466"
 ShopLocationID = "gid://shopify/Location/17633640514"
 
@@ -25,7 +25,7 @@ class ShopifyResources:
     def __init__(self):
         self.Url = 'https://sowerbys.myshopify.com/admin/api/2025-07/graphql.json'
         self.Headers = {"Content-Type": "application/json",
-                        "X-Shopify-Access-Token": "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"}
+                        "X-Shopify-Access-Token": "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"}
         self.UKD_LocationID = "gid://shopify/Location/61867622466"
         self.ShopLocationID = "gid://shopify/Location/17633640514"
         self.OnlineStorePublicationID = "gid://shopify/Publication/26015563842"
