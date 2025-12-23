@@ -1,0 +1,15 @@
+query getVariantDetails {
+    productVariants(first: 1, query: "sku:%s*") {
+    edges {
+        node {
+        price
+        image {
+            originalSrc
+        }
+        product {
+            title
+        }
+        }
+    }
+    }
+}

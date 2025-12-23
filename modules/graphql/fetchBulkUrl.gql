@@ -1,0 +1,13 @@
+query {
+    node(id: "%s") {
+    ... on BulkOperation {
+        id
+        status
+        errorCode
+        createdAt
+        completedAt
+        objectCount
+        url
+    }
+    }
+}

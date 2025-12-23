@@ -1,0 +1,15 @@
+query GetInventoryLevel {
+    productVariants(first: 1, query: "%s") {
+    edges {
+        node {
+        inventoryItem {
+            inventoryLevel (locationId:"%s"){
+            quantities (names:["on_hand"]) {
+                quantity
+            }
+            }
+        }
+        }
+    }
+    }
+}

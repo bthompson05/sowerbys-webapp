@@ -1,0 +1,35 @@
+mutation {
+    bulkOperationRunQuery(
+    query: """
+    {
+        products {
+        edges {
+            node {
+            id
+            variants(first: 250)
+        {
+            edges {
+            node {
+                sku
+                inventoryItem {
+                id  #this is the inventory_item_id
+                }
+            }
+            }
+        }
+            }
+        }
+        }
+    }
+    """
+    ) {
+    bulkOperation {
+        id
+        status
+    }
+    userErrors {
+        field
+        message
+    }
+    }
+}

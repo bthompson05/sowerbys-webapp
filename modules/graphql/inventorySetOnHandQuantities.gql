@@ -1,0 +1,30 @@
+mutation {
+                  inventorySetOnHandQuantities(input: {
+                    reason: "correction",
+                    referenceDocumentUri: "gid://shopify/Order/1974482927638",
+                    setQuantities: [
+                      {
+                        inventoryItemId: "%s",
+                        locationId: "%s",
+                        quantity: %s
+                      }
+                    ]
+                  }
+                  ) {
+                    inventoryAdjustmentGroup {
+                      id
+                      changes {
+                        name
+                        delta
+                        quantityAfterChange
+                      }
+                      reason
+                      referenceDocumentUri
+                    }
+                    userErrors {
+                      message
+                      code
+                      field
+                    }
+                  }
+                }
