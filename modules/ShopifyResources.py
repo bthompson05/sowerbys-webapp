@@ -2,6 +2,7 @@ import os.path
 import os
 import time
 import wget
+import webbrowser
 import requests
 import json
 import urllib3
@@ -24,10 +25,10 @@ class ShopifyResources:
             "Content-Type": "application/json",
             "X-Shopify-Access-Token": os.getenv("X-Shopify-Access-Token"),
         }
-        self.UKD_LocationID = f"gid://shopify/Location/{os.getenv("UKDLocationID")}"
-        self.ShopLocationID = f"gid://shopify/Location/{os.getenv("ShopLocationID")}"
+        self.UKD_LocationID = f"gid://shopify/Location/{os.getenv('UKDLocationID')}"
+        self.ShopLocationID = f"gid://shopify/Location/{os.getenv('ShopLocationID')}"
         self.OnlineStorePublicationID = (
-            f"gid://shopify/Publication/{os.getenv("OnlineStorePublicationID")}"
+            f"gid://shopify/Publication/{os.getenv('OnlineStorePublicationID')}"
         )
         self.PercentageComplete = 0
         self.Products = []
