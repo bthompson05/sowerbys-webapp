@@ -80,6 +80,7 @@ class ShopifyResources:
                     self.Url,
                     data=json.dumps({"query": CreateBulkQuery}),
                     headers=self.Headers,
+                    timeout=(10, 60),
                 )
                 if Request.status_code != 200:
                     print(
@@ -111,8 +112,7 @@ class ShopifyResources:
                 retry_count += 1
                 time.sleep(10)
         if not Received:
-            print("*** Failed to start bulk operation after maximum retries.")
-            return
+            raise RuntimeError("Failed to start Shopify bulk operation")
 
         FetchURLQuery = """query {
                           node(id: "%s") {
@@ -140,6 +140,7 @@ class ShopifyResources:
                     self.Url,
                     data=json.dumps({"query": FetchURLQuery}),
                     headers=self.Headers,
+                    timeout=(10, 60),
                 )
                 if resp.status_code != 200:
                     print(f"*** Error: FetchURLQuery HTTP {resp.status_code}")
@@ -161,10 +162,7 @@ class ShopifyResources:
                 retry_count += 1
                 time.sleep(10)
         if not URL:
-            print(
-                f"*** Bulk operation did not complete in time after {max_retries} retries."
-            )
-            return
+            raise RuntimeError("Shopify bulk operation failed or timed out")
 
         if os.path.exists(
             os.path.join("files/ShopifyStock.jsonl")
@@ -173,7 +171,10 @@ class ShopifyResources:
                 os.path.join("files/ShopifyStock.jsonl")
             )  # remove file from directory
         print(f"Starting download of JSONL from {URL}")
-        wget.download(URL, os.path.join("files/ShopifyStock.jsonl"))
+        response = requests.get(URL, timeout=(10, 120))
+        response.raise_for_status()
+        with open("files/ShopifyStock.jsonl", "wb") as output:
+            output.write(response.content)
         print("Download complete.")
 
         self.ProcessJsonl()
@@ -332,24 +333,27 @@ class ShopifyResources:
             time.sleep(60)
 
     def UKDStockUpdate(self):
-        UKDStock = UKD().GetFullStock()
+        """Shared sync implementation used by both the website and daily command."""
+        stock = UKD(force_refresh=True).GetFullStock()
+        if not stock:
+            raise ValueError("UKD stock feed is empty")
         self.GetLatestShopifyProducts()
-        NumberOfProducts = len(self.Products)
-
-        while len(self.Products) > 0:
-            SKU, InventoryID = self.Products.pop()
-            if SKU in UKDStock:
-                print(f"{SKU} stocked by UKD.")
-                Count = NumberOfProducts - len(self.Products)
-                self.CountUpdate(Count, 250)
-                self.TimeBreak(Count, 1000)
-                self.SetPercentageComplete(Count, NumberOfProducts)
-
-                Quantity = UKDStock[SKU]
-                if InventoryID is not None:
-                    self.ShopifyStock(InventoryID, self.UKD_LocationID, Quantity)
-            else:
-                print(f"{SKU} not stocked by UKD.")
+        total = len(self.Products)
+        updated = 0
+        for count, (sku, inventory_id) in enumerate(self.Products, 1):
+            if sku in stock and inventory_id is not None:
+                quantity = int(stock[sku])
+                if quantity < 0:
+                    raise ValueError(f"Negative stock quantity for {sku}")
+                self.ShopifyStock(inventory_id, self.UKD_LocationID, quantity)
+                updated += 1
+            self.CountUpdate(count, 250)
+            self.TimeBreak(count, 1000)
+            self.SetPercentageComplete(count, total)
+        if not total:
+            self.SetPercentageComplete(1, 1)
+        print(f"Stock sync complete: {updated} updated, {total} checked", flush=True)
+        return {"checked": total, "updated": updated}
 
     def ShopifyStock(self, InventoryID, LocationID, Quantity):
         update_query = """mutation {
@@ -387,15 +391,25 @@ class ShopifyResources:
             Quantity,
         )
 
-        Received = False
-        while not Received:
+        # Absolute quantities are safe to retry after a transient network failure.
+        for attempt in range(3):
             try:
-                payload = {"query": update_query}
-                Update = requests.post(self.Url, headers=self.Headers, json=payload)
-                result = Update.json()
-                Received = True
-            except Exception as Error:
-                print("**** Error occurred in ShopifyStock:", Error)
+                response = requests.post(
+                    self.Url, headers=self.Headers, json={"query": update_query},
+                    timeout=(10, 60),
+                )
+                response.raise_for_status()
+                result = response.json()
+                if result.get("errors"):
+                    raise RuntimeError(f"Shopify GraphQL errors: {result['errors']}")
+                mutation = (result.get("data") or {}).get("inventorySetOnHandQuantities")
+                if not mutation or mutation.get("userErrors"):
+                    raise RuntimeError(f"Shopify rejected inventory update: {mutation}")
+                return
+            except requests.RequestException:
+                if attempt == 2:
+                    raise
+                time.sleep(2 ** attempt)
 
     def ChangeStock(self, SKU, Location, Change):
         InventoryID = self.GetInventoryID(SKU)

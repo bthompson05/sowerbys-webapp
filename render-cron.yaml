@@ -1,0 +1,17 @@
+# Import this file as a Render Blueprint using its custom Blueprint path.
+# Configure the existing web service separately as documented in STOCK_SYNC.md.
+services:
+  - type: cron
+    name: daily-ukd-stock-sync
+    runtime: python
+    plan: starter
+    schedule: "0 5 * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -u sync_stock.py
+    envVars:
+      - key: API-Url
+        sync: false
+      - key: X-Shopify-Access-Token
+        sync: false
+      - key: UKDLocationID
+        sync: false

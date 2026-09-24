@@ -3,6 +3,8 @@ import os
 import wget
 import logging
 import time
+import tempfile
+import requests
 
 UKDStockFileLink = 'https://www.ukdistributors.co.uk/downloads/xStockFile2.csv'
 UKDDataFileLink = 'https://www.ukdistributors.co.uk/downloads/xStockFile6.csv'
@@ -13,10 +15,10 @@ ssl._create_default_https_context = ssl._create_unverified_context
 
 class UKDStock:
 
-    def __init__(self):
+    def __init__(self, force_refresh=False):
         # Ensure files directory exists
         os.makedirs("files", exist_ok=True)
-        self.__DownloadStock()  # Downloads latest stock each time program loaded
+        self.__DownloadStock(force_refresh)
         self.ShopLocationID = "gid://shopify/Location/17633640514"  # Shopify tag for shop location
         self.UKDLocationID = "gid://shopify/Location/61867622466"  # Shopify tag for shop location
         self.Stock = {}
@@ -24,57 +26,27 @@ class UKDStock:
         self.BarcodeMap = {}  # Add barcode mapping
         self.LoadStock()
 
-    def __DownloadStock(self):
-        """Description: Downloads the latest stock sheets available on UKD website to local computer to be used with
-        system."""
-        try:
-            print("\n=== Starting UKD File Download ===")
-            
-            # Download stock file
-            stock_path = os.path.join("files/UKDStock.csv")
-            if os.path.exists(stock_path):
-                file_age = time.time() - os.path.getmtime(stock_path)
-                week_in_seconds = 7 * 24 * 60 * 60  # 7 days in seconds
-                if file_age > week_in_seconds:
-                    print(f"Removing old stock file (age: {file_age/86400:.1f} days): {stock_path}")
-                    os.remove(stock_path)
-                    print("Downloading UKD stock file...")
-                    wget.download(UKDStockFileLink, stock_path)
-                    print("\nUKD stock file downloaded successfully")
-                else:
-                    print(f"Using existing stock file (age: {file_age/86400:.1f} days): {stock_path}")
-                    return  # Skip download if file is less than a week old
-            
-
-            # Download data file
-            data_path = os.path.join("files/UKDData.csv")
-            if os.path.exists(data_path):
-                file_age = time.time() - os.path.getmtime(data_path)
-                week_in_seconds = 7 * 24 * 60 * 60  # 7 days in seconds
-                if file_age > week_in_seconds:
-                    print(f"Removing old data file (age: {file_age/86400:.1f} days): {data_path}")
-                    os.remove(data_path)
-                    print("Downloading UKD data file...")
-                    wget.download(UKDDataFileLink, data_path)
-                    print("\nUKD data file downloaded successfully")
-                else:
-                    print(f"Using existing data file (age: {file_age/86400:.1f} days): {data_path}")
-                    return  # Skip download if file is less than a week old
-
-            
-            # Verify files exist and show sizes
-            if os.path.exists(stock_path):
-                size = os.path.getsize(stock_path)
-                print(f"Stock file size: {size} bytes")
-            if os.path.exists(data_path):
-                size = os.path.getsize(data_path)
-                print(f"Data file size: {size} bytes")
-                
-            print("=== Download Complete ===\n")
-            
-        except Exception as e:
-            print(f"Error downloading UKD files: {str(e)}")
-            raise
+    def __DownloadStock(self, force_refresh=False):
+        """Refresh missing/expired files atomically; syncs explicitly bypass the cache."""
+        for filename, url in (("UKDStock.csv", UKDStockFileLink),
+                              ("UKDData.csv", UKDDataFileLink)):
+            path = os.path.join("files", filename)
+            if (not force_refresh and os.path.exists(path)
+                    and time.time() - os.path.getmtime(path) < 7 * 24 * 60 * 60):
+                continue
+            response = requests.get(url, timeout=(10, 120))
+            response.raise_for_status()
+            if not response.content.strip():
+                raise ValueError(f"Empty UKD download: {filename}")
+            temporary = None
+            try:
+                with tempfile.NamedTemporaryFile(dir="files", delete=False) as output:
+                    temporary = output.name
+                    output.write(response.content)
+                os.replace(temporary, path)
+            finally:
+                if temporary and os.path.exists(temporary):
+                    os.unlink(temporary)
 
     def LoadStock(self):
         try:

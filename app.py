@@ -106,32 +106,8 @@ class LoggingShopifyResources(ShopifyResources):
         global update_status
         try:
             log_message("Starting UKD stock update...")
-            ukd_stock = UKDStock().GetFullStock()
-            self.GetLatestShopifyProducts()
-            NumberOfProducts = len(self.Products)
-            log_message(f"Found {NumberOfProducts} products to process")
-
-            while len(self.Products) > 0:
-                SKU, InventoryID = self.Products.pop()
-                if SKU in ukd_stock:
-                    Count = NumberOfProducts - len(self.Products)
-                    if Count % 1000 == 0:  # Show message every 1000 products
-                        message = f"{Count} products processed"
-                        log_message(message)
-                        print(message)
-                    
-                    message = f"Stock updated for {SKU}"
-                    log_message(message)
-                    print(message)
-                    
-                    self.SetPercentageComplete(Count, NumberOfProducts)
-                    Quantity = ukd_stock[SKU]
-                    if InventoryID is not None:
-                        self.ShopifyStock(InventoryID, self.UKD_LocationID, Quantity)
-                else:
-                    message = f"{SKU} not stocked by UKD"
-                    log_message(message)
-                    print(message)
+            super().UKDStockUpdate()
+            update_status["last_update"] = time.time()
 
             log_message("UKD stock update completed!")
         except Exception as e:
@@ -458,7 +434,11 @@ def scan_barcode():
 @login_required
 def update_ukd_stock():
     global update_status
-    
+
+    if os.getenv("STOCK_SYNC_MODE", "manual") == "cron":
+        return jsonify({"success": False, "error":
+            "Daily stock sync is managed by Render Cron. Use its Runs page to run it manually."}), 409
+
     if update_status['is_running']:
         return jsonify({'success': False, 'error': 'Update already in progress'}), 400
     
